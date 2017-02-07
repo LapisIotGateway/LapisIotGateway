@@ -1,0 +1,269 @@
+<!-- SLR429 RX -->
+<script type="text/x-red" data-template-name="slr429 in">
+    <div class="form-row node-input-serial">
+        <label for="node-input-serial"><i class="fa fa-random"></i> SerialPort</label>
+        <input type="text" id="node-input-serial">
+    </div>
+    <div class="form-row node-input-slr429">
+        <label for="node-input-slr429"><i class="fa fa-random"></i> Config</label>
+        <input type="text" id="node-input-slr429">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="node-red:common.label.name"></span></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]node-red:common.label.name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="slr429 in">
+    <p>Outputs a message with the properties:</p>
+    <ul>
+        <li><code>msg.payload</code></li>
+        <li><code>msg.rssi</code></li>
+    </ul>
+    <p><code>msg.payload</code> is payload of receiving data.</p>
+    <p><code>msg.rssi</code> is rssi when payload did receive.</p>
+</script>
+
+<script type="text/javascript">
+/*globals RED */
+RED.nodes.registerType("slr429 in", {
+    category: "input",
+    defaults: {
+        name: {
+            value: ""
+        },
+        serial: {
+            type: "slr429-serial",
+            required: true
+        },
+        slr429: {
+            type: "slr429-config",
+            required: true
+        },
+        interval: {
+            value: "1000",
+            required: true,
+            validate: RED.validators.number()
+        },
+        enbinterval: {
+            value: true
+        },
+        latestpacket: {
+            value: false
+        },
+    },
+    icon: "bridge-dash.png",
+    color: "BurlyWood",
+    inputs: 0,
+    outputs: 1,
+    label: function() {
+        return this.name || "SLR429";
+    },
+    labelStyle: function() {
+        return this.name ? "node_label_italic" : "";
+    }
+});
+</script>
+
+<!-- SLR429 TX -->
+<script type="text/x-red" data-template-name="slr429 out">
+    <div class="form-row node-input-serial">
+        <label for="node-input-serial"><i class="fa fa-random"></i> SerialPort</label>
+        <input type="text" id="node-input-serial">
+    </div>
+    <div class="form-row node-input-slr429">
+        <label for="node-input-slr429"><i class="fa fa-random"></i> Config</label>
+        <input type="text" id="node-input-slr429">
+    </div>
+    <div class="form-row">
+        <label for="node-input-gid"><i class="fa fa-users"></i>Send Group ID</label>
+        <input type="text" id="node-input-gid">
+    </div>
+    <div class="form-row">
+        <label for="node-input-did"><i class="fa fa-user-o"></i>Send Destination ID</label>
+        <input type="text" id="node-input-did">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="slr429 out">
+    <p>Send data with SLR429</p>
+    <p>Inputs a message with the properties:</p>
+    <ul>
+        <li><code>msg.payload</code></li>
+        <li><code>msg.gid</code></li>
+        <li><code>msg.did</code></li>
+        <li><code>msg.gid</code></li>
+    </ul>
+    <p><code>msg.payload</code> is payload to be sent.</p>
+    <p><code>msg.gid</code> is groupd id of receiver. If it is not set, Send Group ID in GUI is in use.</p>
+    <p><code>msg.did</code> is equipment id of receiver. If it is not set, Send Destination ID in GUI is in use.</p>
+    <p><code>msg.gid</code> and <code>msg.did</code> enabled when mode is command.</p>
+</script>
+
+<script type="text/javascript">
+/*globals RED */
+RED.nodes.registerType("slr429 out", {
+    category: "output",
+    defaults: {
+        name: {
+            name: ""
+        },
+        serial: {
+            type: "slr429-serial",
+            required: true
+        },
+        slr429: {
+            type: "slr429-config",
+            required: true
+        },
+        gid: {
+            value: "0x00",
+            required: true,
+            validate: RED.validators.number()
+        },
+        did: {
+            value: "0x01",
+            required: true,
+            validate: RED.validators.number()
+        },
+    },
+    icon: "bridge-dash.png",
+    align: "right",
+    color: "BurlyWood",
+    inputs: 1,
+    outputs: 0,
+    label: function() {
+        return this.name || "SLR429";
+    },
+    labelStyle: function() {
+        return this.name ? "node_label_italic" : "";
+    }
+});
+</script>
+
+<!-- SerialPort Config -->
+<script type="text/x-red" data-template-name="slr429-serial">
+    <div class="form-row">
+        <label for="node-config-input-serialport"><i class="fa fa-random"></i> SerialPort</label>
+        <input type="text" id="node-config-input-serialport" style="width:60%;" placeholder="/dev/ttyUSB0">
+        <a id="node-config-lookup-serial" class="btn"><i id="node-config-lookup-serial-icon" class="fa fa-search"></i></a>
+    </div>
+</script>
+
+<script type="text/javascript">
+/*globals $, RED */
+RED.nodes.registerType("slr429-serial", {
+    category: "config",
+    defaults: {
+        serialport: {
+            value: "",
+            required: true
+        },
+    },
+    label: function() {
+        return this.serialport;
+    },
+    oneditprepare: function() {
+        try {
+            $("#node-config-input-serialport").autocomplete("destroy");
+        } catch (err) { /*ignore*/ }
+        $("#node-config-lookup-serial").click(function() {
+            $("#node-config-lookup-serial").addClass("disabled");
+            $.getJSON("serialports", function(data) {
+                $("#node-config-lookup-serial").removeClass("disabled");
+                var ports = [];
+                $.each(data, function(i, port) {
+                    ports.push(port.comName);
+                });
+                $("#node-config-input-serialport").autocomplete({
+                    source: ports,
+                    minLength: 0,
+                    close: function(event, ui) {
+                        $("#node-config-input-serialport").autocomplete("destroy");
+                    }
+                }).autocomplete("search", "");
+            });
+        });
+    },
+});
+</script>
+
+<!-- SLR429 Config -->
+<script type="text/x-red" data-template-name="slr429-config">
+    <div class="form-row">
+        <label for="node-config-input-mode"><i class="fa fa-dot-circle-o"></i> Mode</label>
+        <select type="text" id="node-config-input-mode" style="width:70%;">
+            <!--<option value="0">FSK Binary Mode</option>-->
+            <option value="1">FSK Command Mode</option>
+            <!--<option value="2">LoRa Binary Mode</option>-->
+            <option value="3">LoRa Command Mode</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-gid"><i class="fa fa-users"></i> Group ID</label>
+        <input type="text" id="node-config-input-gid">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-eid"><i class="fa fa-user"></i> Equipment ID</label>
+        <input type="text" id="node-config-input-eid">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-did"><i class="fa fa-user-o"></i> Destination ID</label>
+        <input type="text" id="node-config-input-did">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-ch"><i class="fa fa-dot-circle-o"></i> Channel</label>
+        <input type="text" id="node-config-input-ch">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-chip"><i class="fa fa-list-ul"></i> Chip</label>
+        <select type="text" id="node-config-input-chip" style="width:70%;">
+            <option value="0">128chip (245bps)</option>
+            <option value="1">256chip (146bps)</option>
+            <option value="2">512chip (86bps)</option>
+            <option value="3">1024chip (49bps)</option>
+            <option value="4">2048chip (27bps)</option>
+            <option value="5">4096chip (15bps)</option>
+        </select>
+    </div>
+</script>
+
+<script type="text/javascript">
+/*globals RED */
+RED.nodes.registerType("slr429-config", {
+    category: "config",
+    defaults: {
+        mode: {
+            value: "3",
+            required: true
+        },
+        gid: {
+            value: "0x00",
+            required: true,
+            validate: RED.validators.number()
+        },
+        eid: {
+            value: "0x01",
+            required: true,
+            validate: RED.validators.number()
+        },
+        did: {
+            value: "0x01",
+            required: true,
+            validate: RED.validators.number()
+        },
+        ch: {
+            value: "27",
+            required: true,
+            validate: RED.validators.number()
+        },
+        chip: {
+            value: "0",
+            required: true
+        }
+    },
+    label: function() {
+        return "mode:" + this.mode + " gid:" + this.gid + " eid:" + this.eid + " did:" + this.did + " ch:" + this.ch + " chip:" + this.chip;
+    },
+});
+</script>
