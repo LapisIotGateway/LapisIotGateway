@@ -1,0 +1,19 @@
+{
+  "name": "node-red-contrib-toami",
+  "version": "0.0.0",
+  "description": "Node-RED node for Toami",
+  "scripts": {
+  },
+  "author": "",
+  "license": "ISC",
+  "keywords": ["node-red"],
+  "node-red": {
+    "nodes": {
+      "toami": "node-red-toami.js"
+    }
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}
