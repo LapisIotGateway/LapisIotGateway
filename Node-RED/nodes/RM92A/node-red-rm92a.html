@@ -1,0 +1,354 @@
+<!-- RM92A RX -->
+<script type="text/x-red" data-template-name="rm92a in">
+    <div class="form-row node-input-serial">
+        <label for="node-input-serial"><i class="fa fa-random"></i> SerialPort</label>
+        <input type="text" id="node-input-serial">
+    </div>
+    <div class="form-row node-input-rm92a">
+        <label for="node-input-rm92a"><i class="fa fa-random"></i> Config</label>
+        <input type="text" id="node-input-rm92a">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="node-red:common.label.name"></span></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]node-red:common.label.name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="rm92a in">
+    <p>Outputs a message with the properties:</p>
+    <ul>
+        <li><code>msg.payload</code></li>
+        <li><code>msg.dst</code></li>
+        <li><code>msg.rssi</code></li>
+    </ul>
+
+    <p><code>msg.payload</code> is payload of receiving data.</p>
+    <p><code>msg.dst</code> is sender address.</p>
+    <p><code>msg.rssi</code> is rssi when payload did receive.</p>
+</script>
+
+<script type="text/javascript">
+/*globals RED */
+RED.nodes.registerType("rm92a in", {
+    category: "input",
+    defaults: {
+        name: {
+            value: ""
+        },
+        serial: {
+            type: "rm92a-serial",
+            required: true
+        },
+        rm92a: {
+            type: "rm92a-config",
+            required: true
+        },
+        interval: {
+            value: "1000",
+            required: true,
+            validate: RED.validators.number()
+        },
+        enbinterval: {
+            value: true
+        },
+        latestpacket: {
+            value: false
+        },
+    },
+    icon: "bridge-dash.png",
+    color: "BurlyWood",
+    inputs: 0,
+    outputs: 1,
+    label: function() {
+        return this.name || "RM92A";
+    },
+    labelStyle: function() {
+        return this.name ? "node_label_italic" : "";
+    }
+});
+</script>
+
+<!-- RM92A TX -->
+<script type="text/x-red" data-template-name="rm92a out">
+    <div class="form-row node-input-serial">
+        <label for="node-input-serial"><i class="fa fa-random"></i> SerialPort</label>
+        <input type="text" id="node-input-serial">
+    </div>
+    <div class="form-row node-input-rm92a">
+        <label for="node-input-rm92a"><i class="fa fa-random"></i> Config</label>
+        <input type="text" id="node-input-rm92a">
+    </div>
+    <div class="form-row">
+        <label for="node-input-dst"><i class="fa fa-user-o"></i> Default Dst</label>
+        <input type="text" id="node-input-dst">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="rm92a out">
+    <p>Send data with RM92A</p>
+    <p>Inputs a message with the properties:
+        <ul>
+            <li><code>msg.payload</code></li>
+            <li><code>msg.did</code></li>
+        </ul>
+    </p>
+    <p><code>msg.payload</code> is payload to be sent.</p>
+    <p><code>msg.did</code> is receiver address. If it is not set, Default Dst in GUI is in use.</p>
+</script>
+
+<script type="text/javascript">
+/*globals RED */
+RED.nodes.registerType("rm92a out", {
+    category: "output",
+    defaults: {
+        name: {
+            name: ""
+        },
+        serial: {
+            type: "rm92a-serial",
+            required: true
+        },
+        rm92a: {
+            type: "rm92a-config",
+            required: true
+        },
+        dst: {
+            value: "0x00FF",
+            required: true
+        },
+    },
+    icon: "bridge-dash.png",
+    align: "right",
+    color: "BurlyWood",
+    inputs: 1,
+    outputs: 0,
+    label: function() {
+        return this.name || "RM92A";
+    },
+    labelStyle: function() {
+        return this.name ? "node_label_italic" : "";
+    }
+});
+</script>
+
+<!-- SerialPort Config -->
+<script type="text/x-red" data-template-name="rm92a-serial">
+    <div class="form-row">
+        <label for="node-config-input-serialport"><i class="fa fa-random"></i> SerialPort</label>
+        <input type="text" id="node-config-input-serialport" style="width:60%;" placeholder="/dev/ttyUSB0">
+        <a id="node-config-lookup-serial" class="btn"><i id="node-config-lookup-serial-icon" class="fa fa-search"></i></a>
+    </div>
+</script>
+
+<script type="text/javascript">
+/*globals $, RED */
+RED.nodes.registerType("rm92a-serial", {
+    category: "config",
+    defaults: {
+        serialport: {
+            value: "",
+            required: true
+        },
+    },
+    label: function() {
+        return this.serialport;
+    },
+    oneditprepare: function() {
+        try {
+            $("#node-config-input-serialport").autocomplete("destroy");
+        } catch (err) { /* ignore */ }
+        $("#node-config-lookup-serial").click(function() {
+            $("#node-config-lookup-serial").addClass("disabled");
+            $.getJSON("serialports", function(data) {
+                $("#node-config-lookup-serial").removeClass("disabled");
+                var ports = [];
+                $.each(data, function(i, port) {
+                    ports.push(port.comName);
+                });
+                $("#node-config-input-serialport").autocomplete({
+                    source: ports,
+                    minLength: 0,
+                    close: function(event, ui) {
+                        $("#node-config-input-serialport").autocomplete("destroy");
+                    }
+                }).autocomplete("search", "");
+            });
+        });
+    },
+});
+</script>
+
+<!-- RM92A Config -->
+<script type="text/x-red" data-template-name="rm92a-config">
+    <div class="form-row">
+        <label for="node-config-input-reset"><i class="fa fa-file"></i> Reset</label>
+        <input type="text" id="node-config-input-reset" placeholder="~/rm92a-reset.sh">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-mode"><i class="fa fa-dot-circle-o"></i> Mode</label>
+        <select type="text" id="node-config-input-mode" style="width:70%;">
+            <option value="1">LoRa</option>
+            <option value="2">FSK</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-ch"><i class="fa fa-dot-circle-o"></i> Chnnel</label>
+        <input type="text" id="node-config-input-ch">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-panid"><i class="fa fa-users"></i> Pan ID</label>
+        <input type="text" id="node-config-input-panid">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-src"><i class="fa fa-user"></i> Src</label>
+        <input type="text" id="node-config-input-src">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-dst"><i class="fa fa-user-o"></i> Dst</label>
+        <input type="text" id="node-config-input-dst">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-pw"><i class="fa fa-list-ul"></i> TX Power</label>
+        <select type="text" id="node-config-input-pw" style="width:80px;">
+            <option value="0">20</option>
+            <option value="1">4</option>
+            <option value="2">1</option>
+        </select>
+        <label style="width:40px;">mW</label>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-bw"><i class="fa fa-list-ul"></i> Band Width</label>
+        <select type="text" id="node-config-input-bw" style="width:80px;">
+            <option value="0">125</option>
+            <option value="1">250</option>
+            <option value="2">500</option>
+        </select>
+        <label style="width:40px;">kHz</label>
+        <label>※LoRa only</label>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-sf"><i class="fa fa-list-ul"></i> Factor</label>
+        <select type="text" id="node-config-input-sf" style="width:80px;">
+            <option value="0">SF6</option>
+            <option value="1">SF7</option>
+            <option value="3">SF8</option>
+            <option value="4">SF9</option>
+            <option value="5">SF10</option>
+            <option value="6">SF11</option>
+            <option value="7">SF12</option>
+        </select>
+        <label style="width:40px;"></label>
+        <label>※LoRa only</label>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-bitrate"><i class="fa fa-rss"></i> Bitrate</label>
+        <input type="text" id="node-config-input-bitrate" style="width:80px;">
+        <label style="width:40px;">bps</label>
+        <label>※FSK only</label>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-ack"><i class="fa fa-hand-paper-o"></i> ACK</label>
+        <input type="checkbox" id="node-config-input-ack" style="width:20px;">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-timeout"><i class="fa fa-list-ul"></i> ACK timeout</label>
+        <select type="text" id="node-config-input-timeout" style="width:80px;">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+        </select>
+        <label style="width:40px;">sec</label>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-retry"><i class="fa fa-list-ul"></i> ACK retry</label>
+        <select type="text" id="node-config-input-retry" style="width:80px;">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-rtc"><i class="fa fa-list-ul"></i> RTC clock</label>
+        <select type="text" id="node-config-input-rtc" style="width:80px;">
+            <option value="0">LSI</option>
+            <option value="1">LSE</option>
+        </select>
+    </div>
+</script>
+
+<script type="text/javascript">
+/*globals RED */
+RED.nodes.registerType("rm92a-config", {
+    category: "config",
+    defaults: {
+        reset: {
+            value: ""
+        },
+        mode: {
+            value: "1",
+            required: true
+        },
+        ch: {
+            value: "24",
+            required: true,
+            validate: RED.validators.number()
+        },
+        panid: {
+            value: "0x1234",
+            required: true,
+            validate: RED.validators.number()
+        },
+        src: {
+            value: "0x0001",
+            required: true,
+            validate: RED.validators.number()
+        },
+        dst: {
+            value: "0x00FF",
+            required: true,
+            validate: RED.validators.number()
+        },
+        pw: {
+            value: "2",
+            required: true
+        },
+        bw: {
+            value: "0",
+            required: true
+        },
+        sf: {
+            value: "0",
+            required: true
+        },
+        bitrate: {
+            value: "50000",
+            required: true,
+            validate: RED.validators.number()
+        },
+        ack: {
+            value: false,
+            required: true
+        },
+        timeout: {
+            value: "1",
+            required: true
+        },
+        retry: {
+            value: "0",
+            required: true
+        },
+        rtc: {
+            value: "0",
+            required: true
+        }
+    },
+    label: function() {
+        return "mode:" + this.mode + " ch:" + this.ch + " panid:" + this.panid + " src:" + this.src + " dst:" + this.dst;
+    },
+});
+</script>
