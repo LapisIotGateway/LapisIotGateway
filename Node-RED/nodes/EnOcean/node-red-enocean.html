@@ -1,0 +1,96 @@
+<!-- EnOcean In -->
+<script type="text/x-red" data-template-name="esp3 in">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="node-red:common.label.name"></span></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]node-red:common.label.name">
+    </div>
+    <div class="form-row node-input-profile-container-row">
+        <label for="node-input-profile-container"><i class="fa a-list-ul"></i> EEPs</label>
+        <ol id="node-input-profile-container"></ol>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="esp3 in">
+    <p>Receve data by EnOcean</p>
+    <p>Outputs a message with the properties:</p>
+    <ul>
+        <li><code>msg.id</code></li>
+        <li><code>msg.eep</code></li>
+        <li><code>msg.payload</code></li>
+    </ul>
+    <p><code>msg.id</code> is Originator-ID.</p>
+    <p><code>msg.eep</code> is EnOcean Equipment Profiles.</p>
+    <p><code>msg.payload</code> is payload for EEP.</p>
+</script>
+
+<script type="text/javascript">
+/*globals $, RED */
+RED.nodes.registerType("esp3 in", {
+    category: "function",
+    defaults: {
+        name: {
+            value: ""
+        },
+        eeps: {
+            value: []
+        }
+    },
+    icon: "hash.png",
+    color: "#DEBD5C",
+    inputs: 1,
+    outputs: 1,
+    label: function() {
+        return this.name || "ESP3";
+    },
+    labelStyle: function() {
+        return this.name ? "node_label_italic" : "";
+    },
+    oneditprepare: function() {
+        $("#node-input-profile-container")
+        .css("min-height", "250px")
+        .css("min-width", "450px")
+        .editableList({
+            addItem: function(container, i, opt) {
+                if (!opt.hasOwnProperty("p")) {
+                    opt.p = {};
+                }
+                var profile = opt.p;
+                var id = profile.id || "";
+                var eep = profile.eep || "";
+
+                var row1 = $("<div/>", {class: "form-row"}).appendTo(container);
+                $("<span/>", {style: "display: inline-block; width: 80px;"}).text("ID").appendTo(row1);
+                $("<input/>", {type: "text", class: "node-input-profile-id", placeholder: "e.g. 01aa02bb"}).val(id).appendTo(row1);
+                var row2 = $("<div/>", {class: "form-row"}).appendTo(container);
+                $("<span/>", {style: "display: inline-block; width: 80px;"}).text("EEP").appendTo(row2);
+                $("<input/>", {type: "text", class: "node-input-profile-eep", placeholder: "e.g. a0-00-01"}).val(eep).appendTo(row2);
+            },
+            removeItem: function(opt) {
+                if (opt.hasOwnProperty("i")) {
+                    var removedList = $("#node-input-profile-container").data("removedList") || [];
+                    removedList.push(opt.i);
+                    $("#node-input-profile-container").data("removedList", removedList);
+                }
+            },
+            sortable: true,
+            removable: true,
+        });
+
+        this.eeps.forEach(function(value, index) {
+            $("#node-input-profile-container").editableList("addItem", {p: value, i: index});
+        });
+    },
+    oneditsave: function() {
+        var node = this;
+        node.eeps = [];
+
+        var profiles = $("#node-input-profile-container").editableList("items");
+        profiles.each(function() {
+            var profile = $(this);
+            var id = profile.find(".node-input-profile-id").val().toLowerCase();
+            var eep = profile.find(".node-input-profile-eep").val().toLowerCase();
+            node.eeps.push({id: id, eep: eep});
+        });
+    }
+});
+</script>
