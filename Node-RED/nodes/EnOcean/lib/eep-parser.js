@@ -8,10 +8,11 @@ module.exports.get = function(profile) {
         throw new Error("Invalid profile : " + profile);
     }
 
-    var rorg = RORGS(parseInt(split[0], 16));
-    if (!rorg) return null;
+    var rorg = parseInt(split[0], 16);
+    var functions = RORGS[rorg];
+    if (!functions) return null;
 
-    var func = rorg(profile, parseInt(split[1], 16));
+    var func = functions[parseInt(split[1], 16)];
     if (!func) return null;
 
     var type = func(profile, parseInt(split[2], 16));

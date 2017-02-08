@@ -21,7 +21,7 @@ module.exports = function(eep, type) {
     return function(payload) {
         var data = payload.data;
 
-        var temperature = rangeScaleParse(eep, "temperature", conf, data);
+        var temperature = rangeScaleParse(eep, "temperature", conf.temperature, data);
         return {
             func: "Temperature Sensors",
             type: conf.type,

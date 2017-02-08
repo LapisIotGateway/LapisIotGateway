@@ -12,7 +12,7 @@ module.exports = function(RED) {
             if (!payload) {
                 node.warn("Deny input, because msg has none payload");
                 return;
-            } else if (Buffer.isBuffer(payload)) {
+            } else if (!Buffer.isBuffer(payload)) {
                 node.warn("Deny input, because payload is not Buffer");
                 return;
             }
@@ -27,13 +27,15 @@ module.exports = function(RED) {
 
                 var erp2 = ERP2Parser.parse(packet);
 
-                var profile = node.eeps[erp2.originatorID];
-                if (!profile) {
+                var profile = node.eeps.filter(function(element) {
+                    return element.id === erp2.originatorID;
+                });
+                if (profile.length === 0) {
                     node.warn("Deny input, because ID:" + erp2.originatorID + " is Unknown");
                     return;
                 }
 
-                var parser = EEPParser.get(profile);
+                var parser = EEPParser.get(profile[0].eep);
                 if (!parser) {
                     node.warn("Deny input, because EEP:" + profile + " is Unsupported");
                     return;
@@ -43,13 +45,13 @@ module.exports = function(RED) {
 
                 msg = {
                     id: erp2.originatorID,
-                    eep: profile,
+                    eep: profile.eep,
                     payload: eep,
                 };
 
                 node.send(msg);
             } catch (e) {
-                node.warn("Deny input, because packet parse failed(" + e + ")");
+                node.warn("Deny input, because packet parse failed(" + e.stack + ")");
             }
         }
 

@@ -28,8 +28,8 @@ module.exports = function(eep, type) {
     return function(payload) {
         var data = payload.data;
 
-        var humidity = rangeScaleParse(conf.humidity, "humidity", data);
-        var temperature = rangeScaleParse(conf.temperature, "temperature", data);
+        var humidity = rangeScaleParse(eep, "humidity", conf.humidity, data);
+        var temperature = rangeScaleParse(eep, "temperature", conf.temperature, data);
         return {
             func: "Temperature and Humidity Sensor",
             humidity: humidity,

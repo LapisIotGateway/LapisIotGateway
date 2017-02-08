@@ -30,7 +30,7 @@ module.exports.rangeScaleParse = function parse(eep, target, conf, data) {
     var max = Math.max(range[0], range[1]);
     var min = Math.min(range[0], range[1]);
 
-    if (min < value || max < value) {
+    if (value < min || max < value) {
         throw new Error(eep + " allow " + target + " " + min + "～" + max + ", but " + value);
     }
 
@@ -38,7 +38,7 @@ module.exports.rangeScaleParse = function parse(eep, target, conf, data) {
     if (positive) {
         fix += scale[0];
     } else {
-        fix -= scale[1];
+        fix = scale[1] - fix;
     }
 
     return {
