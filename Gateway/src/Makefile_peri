@@ -1,0 +1,34 @@
+# make
+PROGRAM = gw_peri
+
+SRCS =  gateway_peri.c
+
+
+OBJS := $(SRCS:.c=.o)
+
+
+# macro define
+CC = gcc
+CFLAGS = -Wall -O2 $(INCDIR)
+
+# suffixes rule
+.SUFFIXES: .c .o
+
+.PHONY: all
+all: $(PROGRAM)
+
+# program rule
+$(PROGRAM): $(OBJS)
+	$(CC) -o $(PROGRAM) $(OBJS)
+
+# suffixes rule
+.c.o: 
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+# make clean
+.PHONY: clean
+clean:
+	$(RM) $(PROGRAM) $(OBJS)
+
+
+
