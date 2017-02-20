@@ -1,0 +1,129 @@
+○必要なパッケージ
+・hostapd
+・isc-dhcp-server
+
+○手順
+(1) WiFiへ固定アドレスを設定
+/etc/dhcpcd.conf 編集
+
+------------------------ 追記 --------------------------
+interface wlan0
+static ip_address=192.168.42.1/24
+--------------------------------------------------------
+
+※IPアドレスは各自の環境に合わせる
+
+(2) DHCPサーバ設定
+
+/etc/dhcp/dhcpd.conf 編集
+----------------------- 変更前 -------------------------
+# option definitions common to all supported networks...
+option domain-name "example.org";
+option domain-name-servers ns1.example.org, ns2.example.org;
+--------------------------------------------------------
+----------------------- 変更後 -------------------------
+# option definitions common to all supported networks...
+#option domain-name "example.org";
+#option domain-name-servers ns1.example.org, ns2.example.org;
+--------------------------------------------------------
+------------------------ 追記 --------------------------
+subnet 192.168.42.0 netmask 255.255.255.0 {
+  range 192.168.42.10 192.168.42.50;
+  option broadcast-address 192.168.42.255;
+  option routers 192.168.42.1;
+  default-lease-time 600;
+  max-lease-time 7200;
+  option domain-name "local";
+  option domain-name-servers 192.168.42.1;
+}
+--------------------------------------------------------
+
+※IPアドレスは各自の環境に合わせる
+
+(3) hostapd設定
+
+/etc/hostapd/hostapd.conf 新規作成
+------------------------ 新規 --------------------------
+interface=wlan0
+driver=nl80211
+ssid=「SSID名称」
+hw_mode=g
+channel=「チャンネル」
+ieee80211n=1
+wmm_enabled=1
+ht_capab=[HT40][SHORT-GI-20][DSSS_CCK-40]
+macaddr_acl=0
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=2
+wpa_key_mgmt=WPA-PSK
+wpa_passphrase=「パスワード」
+rsn_pairwise=CCMP
+--------------------------------------------------------
+
+※SSID名称、チャンネル、パスワードは各自の環境に合わせる
+
+(4) hostapdデーモン化
+
+/etc/default/hostapd 編集
+----------------------- 変更前 -------------------------
+DAEMON_CONF=""
+--------------------------------------------------------
+----------------------- 変更後 -------------------------
+DAEMON_CONF="/etc/hostapd/hostapd.conf"
+--------------------------------------------------------
+
+(5) isc-dhcp-server設定
+
+/etc/default/isc-dhcp-server 編集
+----------------------- 変更前 -------------------------
+INTERFACES=""
+--------------------------------------------------------
+----------------------- 変更後 -------------------------
+INTERFACES="wlan0"
+--------------------------------------------------------
+
+(6) isc-dhcp-server自動起動無効化
+sysv-rc-conf等を使用し「isc-dhcp-server」の自動起動を無効化する
+
+(7) isc-dhcp-serer自動起動設定
+
+/etc/rc.local 編集
+----------------------- 変更前 -------------------------
+exit 0
+--------------------------------------------------------
+----------------------- 変更後 -------------------------
+sleep 10
+service isc-dhcp-server start
+exit 0
+--------------------------------------------------------
+
+※isc-dhcp-serverは起動時にwlan0にIPアドレスがないと起動失敗する
+  起動を遅延させることで対処する
+
+
+
+========================================================
+他のインタフェース(eth0など)経由でのネットワークに対応
+カーネルがiptablesのNATに対応している必要がある
+※受領品は未対応だったため、以下手順は未確認
+========================================================
+
+(8) IPフォワード設定
+
+/etc/sysctl.conf 編集
+----------------------- 変更前 -------------------------
+net.ipv4.ip_forward = 0
+--------------------------------------------------------
+----------------------- 変更後 -------------------------
+net.ipv4.ip_forward = 1
+--------------------------------------------------------
+
+(10) マスカレード設定
+iptablesの設定を追加
+
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+※eth0部分は適宜インタフェースを指定
+
+(※)iptablesは最低限の設定なので、各自の環境に合わせて適切に設定すること

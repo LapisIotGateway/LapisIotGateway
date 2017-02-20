@@ -1,0 +1,6 @@
+AT+CGDCONT=2,"IP","iijmio.jp"
+OK
+AT*PDPP=2,2,"iij","mio@iij"
+OK
+AT*DPATH_AUTO=1,2
+OK
