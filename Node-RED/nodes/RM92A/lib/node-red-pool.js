@@ -1,3 +1,5 @@
+var connections = {}
+
 module.exports = function(RED) {
 
     var exec = require('child_process').exec;
@@ -73,8 +75,6 @@ module.exports = function(RED) {
             stopbits: 1,
         };
     }
-
-    var connections = {};
 
     return {
         get: function get(serialConfig, rm92aConfig) {

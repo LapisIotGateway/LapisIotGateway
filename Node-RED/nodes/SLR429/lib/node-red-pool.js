@@ -1,3 +1,5 @@
+var connections = {};
+
 module.exports = function(RED) {
 
     var Promise = require("es6-promise").Promise;
@@ -57,8 +59,6 @@ module.exports = function(RED) {
             stopbits: 1,
         };
     }
-
-    var connections = {};
 
     return {
         get: function get(serialConfig, slr429Config) {
