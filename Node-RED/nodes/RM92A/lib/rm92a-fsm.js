@@ -17,7 +17,7 @@ var EVENT = {
     events: [
         { name: "open", from: "s_none", to: "s_open" },
         { name: "setting", from: "s_open", to: "s_setting" },
-        { name: "ready", from: ["s_setting", "s_ok", "s_ng"], to: "s_idle" },
+        { name: "ready", from: ["s_setting", "s_write", "s_ok", "s_ng"], to: "s_idle" },
         { name: "write", from: "s_idle", to: "s_write" },
         { name: "wait", from: "s_write", to: "s_wait", },
         { name: "ok", from: "s_wait", to: "s_ok" },

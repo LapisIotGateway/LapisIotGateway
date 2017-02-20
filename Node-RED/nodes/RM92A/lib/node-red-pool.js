@@ -104,6 +104,8 @@ module.exports = function(RED) {
                 connections[id]._closing = true;
                 connections[id].close(done);
                 delete connections[id];
+            } else {
+                done()
             }
         }
     };
