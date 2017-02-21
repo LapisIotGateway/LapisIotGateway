@@ -1,0 +1,8 @@
+# EnOcean
+KERNEL=="ttyUSB*", ATTRS{manufacturer}=="EnOcean GmbH", ATTRS{product}=="EnOcean USB 400J DA", SYMLINK+="ttyEnOcean"
+
+# SLR429
+KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ttySLR429"
+
+# RM92A
+KERNEL=="ttyUSB*", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="ttyRM92A"

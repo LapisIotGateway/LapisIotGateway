@@ -175,14 +175,16 @@ SLR429.prototype.dt = function(str, callback) {
     var self = this;
 
     var buffer = new Buffer(str);
-    var len = buffer.len;
+    var len = buffer.length;
     var offset = 0;
 
     (function(promise) {
         do {
             var wlen = Math.min(MAX_BYTE, len - offset);
-            promise.then(function() {
-                    return send(self, buffer.slice(offset, offset + wlen));
+            var target = buffer.slice(offset, offset + wlen)
+            promise
+                .then(function() {
+                    return send(self, target);
                 })
                 .then(function() {
                     return new Promise(function(resolve, reject) {
@@ -230,7 +232,8 @@ function create(dev, options) {
 
 function setup(self, serial) {
     serial.on("data", function(data) {
-        return received(self, data); });
+        return received(self, data);
+    });
     serial.on("error", function(err) {
         self._serial = null;
         self.emit("error", err);
