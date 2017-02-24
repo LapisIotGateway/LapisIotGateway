@@ -11,7 +11,7 @@ var DEFAULT_CONFIG = {
     panid: 0x1234,
     src: 0x0001,
     dst: 0x00FF,
-    parent: 1,
+    parent: 0,
     routing: 2,
     power: 2,
     bandwidth: 0,
@@ -24,23 +24,30 @@ var DEFAULT_CONFIG = {
 };
 
 module.exports = function(port, params) {
-    var config = {};
-    Object.keys(DEFAULT_CONFIG).forEach(function(key) {
-        return config[key] = params[key] || DEFAULT_CONFIG[key]; });
+    var config = Object.keys(DEFAULT_CONFIG).reduce(function(config, key) {
+        var value = params[key];
+        if (value || value === 0) {
+            config[key] = value;
+        } else {
+            config[key] = DEFAULT_CONFIG[key];
+        }
+        return config;
+    }, {});
 
     return setting(config).reduce(function(p, value) {
-            return String(value).split("").reduce(function(p2, char) {
-                return p2.then(settingWrite(port, char));
-            }, p);
-        }, Promise.resolve())
-        .then(setTimeoutPromiseFunction(function(resolve) {
-            resolve();
-        }, SETTING_SEND_RATE));
+        return String(value).split("").reduce(function(p2, char) {
+            return p2.then(settingWrite(port, char));
+        }, p);
+    }, Promise.resolve())
+    .then(setTimeoutPromiseFunction(function(resolve) {
+        resolve();
+    }, SETTING_SEND_RATE));
 };
 
 function setTimeoutPromiseFunction(f, timeout) {
     return function() {
-        return setTimeoutPromise(f, timeout); };
+        return setTimeoutPromise(f, timeout);
+    };
 }
 
 function setTimeoutPromise(f, timeout) {
@@ -103,6 +110,8 @@ function setting(config) {
     params.push("m", 1, NL, config.carrier, NL);
     // AES (Disable)
     params.push("n", 0, NL);
+    // ? command
+    params.push("?");
     // system start
     params.push("s");
     return params;

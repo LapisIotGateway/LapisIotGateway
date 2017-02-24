@@ -1,4 +1,4 @@
-var connections = {}
+var connections = {};
 
 module.exports = function(RED) {
 
@@ -38,13 +38,13 @@ module.exports = function(RED) {
                     panid: rm92aConfig.panid,
                     src: rm92aConfig.src,
                     dst: rm92aConfig.dst,
-                    parent: 1,
+                    parent: 0,
                     routing: 2,
                     power: rm92aConfig.pw,
                     bandwidth: rm92aConfig.bw,
                     factor: rm92aConfig.sf,
                     bitrate: rm92aConfig.bitrate,
-                    ack: rm92aConfig.ack,
+                    ack: rm92aConfig.ack ? 1 : 0,
                     timeout: rm92aConfig.timeout,
                     retry: rm92aConfig.retry,
                     rtc: rm92aConfig.rtc,
@@ -105,7 +105,7 @@ module.exports = function(RED) {
                 connections[id].close(done);
                 delete connections[id];
             } else {
-                done()
+                done();
             }
         }
     };

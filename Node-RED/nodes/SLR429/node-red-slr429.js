@@ -4,12 +4,12 @@ module.exports = function(RED) {
 
     function SLR429ConfigNode(n) {
         RED.nodes.createNode(this, n);
-        this.mode = parseInt(n.mode) || 0;
-        this.gid = parseInt(n.gid) || 0x00;
-        this.eid = parseInt(n.eid) || 0x01;
-        this.did = parseInt(n.did) || 0x01;
-        this.ch = parseInt(n.ch) || 27;
-        this.chip = parseInt(n.chip) || 0;
+        this.mode = n.mode ? parseInt(n.mode) : 0;
+        this.gid = n.gid ? parseInt(n.gid) : 0x00;
+        this.eid = n.eid ? parseInt(n.eid) : 0x01;
+        this.did = n.did ? parseInt(n.did) : 0x01;
+        this.ch = n.ch ? parseInt(n.ch) : 27;
+        this.chip = n.chip ? parseInt(n.chip) : 0;
     }
     RED.nodes.registerType("slr429-config", SLR429ConfigNode);
 

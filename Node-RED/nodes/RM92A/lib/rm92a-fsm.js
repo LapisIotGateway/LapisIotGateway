@@ -78,8 +78,8 @@ EVENT.callbacks.ons_write = function(event, from, to, self) {
     }
 
     send(self._port, data.dst, data.buffer, function() {
-        if (!self._options.ack || self._options.ack === 0) {
-            self._writeQueue.shift()
+        if (self._options.ack === 0) {
+            self._writeQueue.shift();
             fsmEvent(self._fsm, "ready", self);
         } else {
             fsmEvent(self._fsm, "wait", self);
