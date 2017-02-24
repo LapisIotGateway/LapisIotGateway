@@ -37,7 +37,7 @@ for (i = 0; i < num; i++) {
     seq = (zeroPadding + i).slice(-digit);
     data = payload.slice(split * (i), Math.min(split * (i+1), payload.length));
     format = util.format("@F;%s;%s;%s", seq, amount, data);
-    msgs.push({payload: format});
+    msgs.push({topic: i, payload: format});
 }
 
 return [msgs];
