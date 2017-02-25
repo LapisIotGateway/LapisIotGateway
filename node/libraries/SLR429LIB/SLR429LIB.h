@@ -25,10 +25,8 @@
 
 #include "lazurite.h"
 
-enum LORA_MODE {
-	FSK_CMD = 1,
-	LORA_CMD = 3
-};
+#define	FSK429		1
+#define	LORA429		3
 typedef struct {
 		char rts;
 		char cts;
@@ -36,11 +34,18 @@ typedef struct {
 		char rstb;
 }t_SLR429_CONFIG;
 
+struct s_slr429_settings {
+	unsigned char debug;
+	unsigned char chips;
+};
+
 typedef struct {
 	int (*init)(HardwareSerial* port,t_SLR429_CONFIG *config);
-	int (*begin)(unsigned char mode, unsigned char chips, unsigned char ch, unsigned char gid, unsigned char src);
+	int (*begin)(unsigned char mode, unsigned char ch, unsigned char gid, unsigned char src);
 	int (*send)(unsigned char dst, unsigned char *payload,int size);
-	short (*readData)(unsigned char *data, short max_size);
+	short (*readData)(uint16_t *dst,int16_t *rssi,uint8_t *data, short maxsize);
+	void (*setMode)(struct s_slr429_settings *settings);
+	void (*getMode)(struct s_slr429_settings *settings);
 } t_SLR429;
 
 extern const t_SLR429 slr429;

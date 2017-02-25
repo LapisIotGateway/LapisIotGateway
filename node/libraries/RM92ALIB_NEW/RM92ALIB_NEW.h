@@ -25,10 +25,8 @@
 
 #include "lazurite.h"
 
-enum RM92A_MODE {
-	LORA_MODE=1,
-	FSK_MODE=2
-};
+#define LORA920	1
+#define FSK920	2
 
 typedef struct {
 		char boot0;
@@ -36,8 +34,10 @@ typedef struct {
 }t_RM92A_CONFIG;
 
 struct s_rm92a_settings  {
-	unsigned char mode;					// 0: pararent  1: child
-	unsigned char debug;
+	unsigned char debug;				// 0: normal   1: debug
+	unsigned char routing_mode;			// 0: Fixation 1: AutoRouting 2:NonRouting
+	unsigned char unit_mode;			// 0: pararent 1: child
+	unsigned char dt_mode;				// Data Transfer Mode[0:Discharge  1:Frame  2:TimerSend  3:SleepTimerSend(Non Routing Only)]
 	struct {
 		bool enb;
 		unsigned char timeout;
@@ -51,6 +51,18 @@ struct s_rm92a_settings  {
 		bool enable;
 		unsigned char retry;
 	} cca;
+	struct {
+		struct {
+			unsigned char txpwr;	// 1:TX-Power Set[0:20mW[+13dBm] 1:4mW[+6dBm] 2:1mW[+0dBm]
+			unsigned char bw;		// 2: Bandwidth Set[0:125kHz  1:250kHz  2:500kHz]
+			unsigned char sf;		// 3: Factor(SF) Set[0:SF6 1:SF7 2:SF8 3:SF9 4:SF10 5:SF11 6:SF12]
+		} lora;
+		struct {
+			unsigned char txpwr;	// TX-Power Set[0:20mW[+13dBm] 1:4mW[+6dBm] 2:1mW[+0dBm]
+			unsigned long bw;		// RF Transmit BitRate Set(bps) [5000 to 300000]
+		} fsk;
+	} rf;
+	unsigned char rf_mode;				// 1: Lora     2: FSK
 };
 
 typedef struct {
