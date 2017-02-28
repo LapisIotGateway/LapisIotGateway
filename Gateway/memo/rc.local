@@ -18,7 +18,9 @@ if [ "$_IP" ]; then
 fi
 
 # peripheral init
-/home/pi/gateway/gw_peri
+/home/pi/gateway/gw_peri &
+
+sleep 3
 
 # wifi switch monitoring
 /home/pi/gateway/wifi_sw_ctrl /home/pi/gateway/wifi_toggle.sh  &

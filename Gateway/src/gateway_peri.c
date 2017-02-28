@@ -14,12 +14,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <termios.h>
 
-// #define _DEBUG_
+
+//#define _DEBUG_
 #ifdef _DEBUG_
-	#define debug_print(...)	printf(__ARGV__)
+	#define debug_print(fmt,...)		printf(fmt ## __VA_ARGS__)
 #else
-	#define debug_print(...)
+	#define debug_print(fmt,...)
 #endif
 
 typedef struct {
@@ -95,6 +98,14 @@ GATEWAY_GPIO_TBL	gpio_init_tbl[] = {
 	GPIO_USB_Disable,		"0",
 	0, 0
 };
+
+int	SHUTDOWN_FLAG = 0;
+
+
+#define BAUDRATE B115200 
+#define MODEMDEVICE "/dev/ttyUSB1"
+
+
 
 /******************************************************************************
  * NAME       : io_export
@@ -281,6 +292,74 @@ static int io_value_get( char *gpio, char *get_value )
 	return 0;
 }
 
+/******************************************************************************
+ * NAME       : signal_handler
+ * FUNCTION   : receive signal
+ * REMARKS    :
+ *****************************************************************************/
+static void signal_handler( int sig )
+{
+	printf("signal_handler receive :%d.\n", sig);
+
+	/* system shutdown */
+	SHUTDOWN_FLAG = 0;
+}
+
+/******************************************************************************
+ * NAME       : shutdown_ATcommand
+ * FUNCTION   : shutdown at command
+ * REMARKS    :
+ *****************************************************************************/
+static int shutdown_ATcommand( void )
+{
+	int modem_fd;
+	struct termios oldtio,newtio;
+
+	modem_fd = open( MODEMDEVICE, O_RDWR | O_NOCTTY );
+	if( modem_fd < 0 )
+	{
+		perror( MODEMDEVICE );
+		return -1;
+	}
+
+	tcgetattr( modem_fd, &oldtio );
+	bzero( &newtio, sizeof(newtio) );
+
+	newtio.c_cflag = BAUDRATE | CRTSCTS | CS8 | CLOCAL | CREAD;
+	newtio.c_iflag = IGNPAR | ICRNL;
+	newtio.c_oflag = 0;
+	newtio.c_lflag = ICANON;
+
+	newtio.c_cc[VINTR] = 0;		/* Ctrl-c */ 
+	newtio.c_cc[VQUIT] = 0;		/* Ctrl-\ */
+	newtio.c_cc[VERASE] = 0;	/* del */
+	newtio.c_cc[VKILL] = 0;		/* @ */
+	newtio.c_cc[VEOF] = 4;		/* Ctrl-d */
+	newtio.c_cc[VTIME] = 0;		/* キャラクタ間タイマを使わない */
+	newtio.c_cc[VMIN] = 1;		/* 1文字来るまで，読み込みをブロックする */
+	newtio.c_cc[VSWTC] = 0;		/* '\0' */
+	newtio.c_cc[VSTART] = 0;	/* Ctrl-q */ 
+	newtio.c_cc[VSTOP] = 0;		/* Ctrl-s */
+	newtio.c_cc[VSUSP] = 0;		/* Ctrl-z */
+	newtio.c_cc[VEOL] = 0;		/* '\0' */
+	newtio.c_cc[VREPRINT] = 0;	/* Ctrl-r */
+	newtio.c_cc[VDISCARD] = 0;	/* Ctrl-u */
+	newtio.c_cc[VWERASE] = 0;	/* Ctrl-w */
+	newtio.c_cc[VLNEXT] = 0;	/* Ctrl-v */
+	newtio.c_cc[VEOL2] = 0;		/* '\0' */
+
+	tcflush( modem_fd, TCIFLUSH );
+	tcsetattr( modem_fd, TCSANOW, &newtio );
+
+	/* shutdown command */
+	write( modem_fd ,"at+ifc=0,0\r\n", 12);
+	sleep(1);
+	write( modem_fd ,"at*reset=11\r\n", 13);
+
+	close( modem_fd );
+
+	return 0;
+}
 
 /******************************************************************************
  * NAME       : main
@@ -291,6 +370,19 @@ int main( int argc, char **argv )
 {
 	char	read_value;
 	int		loop;
+	struct sigaction	sa;
+#ifdef _DEBUG_
+	FILE *debug_fd;
+#endif
+
+	/* regist signal handler */
+	memset( &sa, 0, sizeof(sa) );
+	sa.sa_flags = SA_NOCLDSTOP;
+	sa.sa_handler = signal_handler;
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGTERM, &sa, NULL);
+
+	SHUTDOWN_FLAG = 1;
 
 	/* I/O initialize */
 	if( 0 != io_export() )
@@ -320,9 +412,11 @@ int main( int argc, char **argv )
 			{
 				debug_print( "MM-M500 reset proc GPIO_POWER_ON high OK .\n" );
 
-				sleep(1);
-				for( loop=0 ; loop<500 ; loop++ )
+				for( loop=0 ; loop<10 ; loop++ )
 				{
+					/* 200ms wait */
+					usleep(200000);
+
 					if( 0 != io_value_get( GPIO_PS_HOLD, &read_value ) )
 					{
 						printf( "MM-M500 reset error(GPIO%s) read.\n",GPIO_PS_HOLD );
@@ -334,7 +428,7 @@ int main( int argc, char **argv )
 						break;
 					}
 				}
-				if( loop==500 )
+				if( loop==10 )
 				{
 					printf( "MM-M500 reset GPIO_PS_HOLD ->high timeout.\n" );
 				}
@@ -363,7 +457,104 @@ int main( int argc, char **argv )
 	}
 	else printf( "RM92A reset error(GPIO%s) low.\n",GPIO_RM92A_RESETn );
 
-//	io_unexport();
+	/* wait shutdown signal */
+	while( SHUTDOWN_FLAG )
+	{
+		sleep(1);
+	}
+
+	system("sudo /sbin/modprobe -r cp210x >/dev/null 2>&1");
+	sleep(2);
+	system("sudo /sbin/modprobe -r ftdi_sio >/dev/null 2>&1");
+	sleep(5);
+	system("sudo /sbin/modprobe usbserial vendor=0x2a9e product=0x0103 >/dev/null 2>&1");
+	sleep(3);
+	// one more
+	system("sudo /sbin/modprobe usbserial vendor=0x2a9e product=0x0103 >/dev/null 2>&1");
+
+#ifdef _DEBUG_
+	debug_fd = fopen("/home/pi/gateway/shutdown_debug.txt", "a");
+#endif
+
+	/* shutdown proc */
+	debug_print( "MM-M500 shutdown proc start.\n" );
+#ifdef _DEBUG_
+	fputs( "MM-M500 shutdown proc start.\n", debug_fd );
+#endif
+	if( 0 == io_value_set( GPIO_POWER_ON, "0" ) )
+	{
+		/* 100ms wait */
+		usleep(100000);
+		/* AT command(shutdown) */
+		debug_print( "MM-M500 shutdown AT command.\n" );
+#ifdef _DEBUG_
+		fputs( "MM-M500 shutdown AT command.\n", debug_fd );
+#endif
+		if( 0 == shutdown_ATcommand() )
+		{
+			/* GPIO_PS_HOLD=low check max 30s */
+			for( loop=0 ; loop<155 ; loop++ )
+			{
+				/* 200ms wait */
+				usleep(200000);
+
+				if( 0 != io_value_get( GPIO_PS_HOLD, &read_value ) )
+				{
+					printf( "MM-M500 shutdown error(GPIO%s) read.\n",GPIO_PS_HOLD );
+#ifdef _DEBUG_
+					fputs( "MM-M500 shutdown error gpio read.\n", debug_fd );
+#endif
+					break;
+				}
+				if( 0x30 == read_value )
+				{
+					debug_print( "MM-M500 shutdown GPIO_PS_HOLD OK.\n" );
+#ifdef _DEBUG_
+					fputs( "MM-M500 shutdown GPIO_PS_HOLD OK.\n", debug_fd );
+#endif
+					break;
+				}
+			}
+			if( loop==155 )
+			{
+				printf( "MM-M500 shutdown GPIO_PS_HOLD ->low timeout.\n" );
+#ifdef _DEBUG_
+				fputs( "MM-M500 shutdown GPIO_PS_HOLD ->low timeout.\n", debug_fd );
+#endif
+				exit(1);
+			}
+			printf( "MM-M500 shutdown GPIO_PS_HOLD loop=%d.\n",loop );
+#ifdef _DEBUG_
+			{
+				char work[128];
+				
+				sprintf( work, "MM-M500 shutdown GPIO_PS_HOLD loop=%d.\n", loop );
+				fputs( work, debug_fd );
+			}
+#endif
+
+			/* 6000ms wait */
+			usleep(600000);
+			debug_print( "MM-M500 shutdown proc wait 600ms GPIO_POWER_OFF_N ->high.\n" );
+#ifdef _DEBUG_
+			fputs( "MM-M500 shutdown proc wait 600ms GPIO_POWER_OFF_N ->high.\n", debug_fd );
+#endif
+			if( 0 == io_value_set( GPIO_POWER_OFF_N, "1" ) )
+			{
+				debug_print( "MM-M500 shutdown proc finish.\n" );
+#ifdef _DEBUG_
+				fputs( "MM-M500 shutdown proc finish.\n", debug_fd );
+#endif
+			}
+			else printf( "MM-M500 shutdown error(GPIO%s) set high.\n",GPIO_POWER_OFF_N );
+		}
+		else printf( "MM-M500 shutdown at command error.\n");
+	}
+	else printf( "MM-M500 shutdown error(GPIO%s) low.\n",GPIO_POWER_ON );
+
+#ifdef _DEBUG_
+	fclose(debug_fd);
+#endif
 
 	return 0;
 }
