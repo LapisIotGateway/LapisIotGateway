@@ -6,7 +6,7 @@ var common = toami.common;
 var sdata = toami.properties.sdata;
 
 function ToamiSdata(key, host, gateway, timeout) {
-    this._host = common.domain(sdata);
+    this._host = common.domain(host);
     this._path = sdata.path(gateway);
     this._key = key;
     this._timeout = timeout;
@@ -40,11 +40,11 @@ ToamiSdata.prototype.request = function(data) {
         if (code === 200) {
             emitter.emit("ok");
         } else {
-            emitter.emit("ng", code, res.statusMessage);
+            emitter.emit("ng", code, res.statusMessage, options);
         }
     });
     req.on("error", function(err) {
-        emitter.emit("error", err);
+        emitter.emit("error", err, options);
     });
     req.setTimeout(timeout, function() {
         setImmediate(function() {

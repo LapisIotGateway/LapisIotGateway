@@ -1,4 +1,5 @@
 module.exports = function(RED) {
+    var util = require("util");
     var ToamiSdata = require("./lib/toami-sdata");
 
     var ToamiOutNode = (function(RED) {
@@ -50,8 +51,8 @@ module.exports = function(RED) {
                 node.status({ fill: "red", shape: "ring", text: "node-red:common.status.ok" });
                 success(node);
             });
-            req.on("ng", function(code, status) {
-                node.error("error : " + code + " " + status);
+            req.on("ng", function(code, status, options) {
+                node.error(util.format("Error: %d %s %j", code, status, options));
                 node.status({ fill: "red", shape: "ring", text: code });
                 fail(node);
             });
@@ -60,8 +61,8 @@ module.exports = function(RED) {
                 node.status({ fill: "red", shape: "ring", text: "node-red:common.notification.errors.no-response" });
                 fail(node);
             });
-            req.on("error", function(err) {
-                node.error(err);
+            req.on("error", function(err, options) {
+                node.error(util.format("Error: %s %j", err.message, options));
                 node.status({ fill: "red", shape: "ring", text: "node-red:common.status.error" });
                 fail(node);
             });
@@ -107,7 +108,7 @@ module.exports = function(RED) {
 
             node.config = RED.nodes.getNode(n.config);
             node.timeout = parseInt(n.timeout) || parseInt(RED.settings.httpRequestTimeout) || 120000;
-            node.retry = parseInt(n.retry) || Number.POSITIVE_INFINITY;
+            node.retry = n.retry ? parseInt(n.retry) : Number.POSITIVE_INFINITY;
             node.interval = parseInt(n.interval) || 0;
 
             if (node.config) {
