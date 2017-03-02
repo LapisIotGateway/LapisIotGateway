@@ -28,13 +28,6 @@ var rmc = /^([0-9.]*),(A|V),([0-9.]*),(N|S),([0-9.]*),(E|W),([0-9.]*),([0-9.]*),
 //  $3 : Seconds
 var dms = /(\d*)(\d{2})\.(\d*)/;
 
-function translate(value) {
-    var degrees = parseInt(value[1], 10);
-    var minutes = parseInt(value[2], 10);
-    var seconds = parseFloat(value[3].replace(/(\d{2})(\d*)/, "$1.$2"));
-    return degrees + (minutes / 60) + (seconds / 3600);
-}
-
 /* globals msg, node */
 var rssi = msg.rssi;
 var payload = msg.payload;
@@ -62,8 +55,20 @@ var result = {
     },
 };
 
-if (gnrmc) {
-        m = rmc.exec(gnrmc);
+var location = (function(gnrmc) {
+
+    function translate(value) {
+        var degrees = parseInt(value[1], 10);
+        var minutes = parseInt(value[2], 10);
+        var seconds = parseFloat(value[3].replace(/(\d{2})(\d*)/, "$1.$2"));
+        return degrees + (minutes / 60) + (seconds / 3600);
+    }
+
+    if (!gnrmc) {
+        return;
+    }
+
+    var m = rmc.exec(gnrmc);
     if (!m) {
         node.error("Invalid gnrmc : " + gnrmc, msg);
         return;
@@ -97,7 +102,11 @@ if (gnrmc) {
         longitude *= -1;
     }
 
-    result.payload.location = { latitude: latitude, longitude: longitude };
+    return { latitude: latitude, longitude: longitude };
+}(gnrmc));
+
+if (location) {
+    result.payload.location = location;
 }
 
 return result;
