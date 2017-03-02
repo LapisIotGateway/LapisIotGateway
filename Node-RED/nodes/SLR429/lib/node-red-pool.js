@@ -25,6 +25,26 @@ module.exports = function(RED) {
         .catch(callback);
     }
 
+    function reset(port, serialConfig, callback) {
+        Promise.resolve()
+        .then(function() {
+            port._closing = true;
+        })
+        .then(function() {
+            return new Promise(function(resolve, reject) {
+                port.close(function(err) {
+                    err ? reject(err) : resolve();
+                });
+            });
+        })
+        .then(setting(port, "open", serialConfig))
+        .then(function() {
+            port._closing = false;
+            callback(null);
+        })
+        .catch(callback);
+    }
+
     function setup(port, serialConfig) {
         port.on("error", function(err) {
             error(("serialport(" + (serialConfig.device) + ") error: " + (err.toString())));
@@ -92,6 +112,17 @@ module.exports = function(RED) {
                 delete connections[id];
             } else {
                 done();
+            }
+        },
+
+        reconnect: function reconnect(serialConfig) {
+            var id = serialConfig.serialport;
+            if (connections[id]) {
+                var conn = connections[id];
+                var params = config(serialConfig);
+                reset(conn, params, function(err) {
+                    if (err) { error(("serialport(" + id + ") close error: " + (err.toString()))); }
+                });
             }
         }
     };

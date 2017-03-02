@@ -38,6 +38,7 @@ module.exports = function(RED) {
         })
         .catch(function(err) {
             node.error(err.toString());
+            slr429Pool.reconnect(node.serialConfig);
         });
     }
 
