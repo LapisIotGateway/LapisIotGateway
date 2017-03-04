@@ -1,7 +1,7 @@
 #/bin/bash
 
 PI=/home/pi
-REPO=$PI/docomo/lpwgateway
+REPO=$PI/docomo/lpwagw
 
 cd $REPO
 
