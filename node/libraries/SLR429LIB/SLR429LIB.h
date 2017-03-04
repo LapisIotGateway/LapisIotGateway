@@ -37,6 +37,9 @@ typedef struct {
 struct s_slr429_settings {
 	unsigned char debug;
 	unsigned char chips;
+	unsigned char txretry;
+	unsigned char minbe;
+	unsigned char maxbe;
 };
 
 typedef struct {

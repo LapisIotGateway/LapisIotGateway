@@ -67,7 +67,7 @@ struct s_rm92a_settings  {
 
 typedef struct {
 	int (*init)(HardwareSerial* port,t_RM92A_CONFIG *config);
-	int (*begin)(unsigned char mode, unsigned char ch, unsigned short panid, unsigned short src,unsigned short dst,bool load);
+	int (*begin)(unsigned char mode, unsigned char ch, unsigned short panid, unsigned short src);
 	int (*send)(unsigned short dst,unsigned char *payload,int size);
 	short (*readData)(uint16_t *dst,int16_t *rssi,uint8_t *data, short maxsize);
 	void (*setMode)(struct s_rm92a_settings *settings);

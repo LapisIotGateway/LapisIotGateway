@@ -821,13 +821,18 @@ static int rm92a_send(unsigned short dst,unsigned char *payload,int size)
 	txbuf[4] = (unsigned char)((dst >> 0) & 0xFF);
 	strcpy(&txbuf[5],payload,size);
 	txbuf[size+5] = 0xAA;
+	txbuf[size+6] = NULL;
 	result = size + 6;
 	if(rm92a_settings.debug) {
-		for(i=0;i<result;i++) {
-			Serial.print_long(txbuf[i],HEX);
-			Serial.print(",");
-		}
-		Serial.println("");
+		Serial.write_byte(txbuf[0]);
+		Serial.write_byte(txbuf[1]);
+		Serial.print(",");
+		Serial.print_long(txbuf[2],DEC);
+		Serial.print(",");
+		Serial.print_long(txbuf[3],DEC);
+		Serial.print_long(txbuf[4],DEC);
+		Serial.print(",");
+		Serial.println(&txbuf[5]);
 	}
 	
 	rm92a_port->write(txbuf,result);

@@ -33,7 +33,10 @@ static int rx_size;
 static t_SLR429_CONFIG slr429_config;
 struct s_slr429_settings slr429_settings = {
 	0,		// debug
-	0		// chips
+	0,		// chips
+	5,		// txretry
+	8,		// minbe		2^n[ms]
+	9		// maxbe		2^n[ms]
 };
 static HardwareSerial* slr429_port;
 
@@ -324,6 +327,7 @@ static int slr429_send(unsigned char dst, unsigned char *payload,int size)
 {
 	int result=0;
 	int i,data;
+	int retry_cycle;
 	volatile unsigned long current_time;
 	volatile unsigned long start_time;
 	if(size == 0) size = strlen(payload);
@@ -343,72 +347,96 @@ static int slr429_send(unsigned char dst, unsigned char *payload,int size)
 		goto error;
 	}
 	
-	delay(100);
-	// set send
-	if (size<0x10)
-	{
-		slr429_port->print("@DT0");
-		if(slr429_settings.debug) 	Serial.print("@DT0");
-	} else {
-		slr429_port->print("@DT");
-		if(slr429_settings.debug) 	Serial.print("@DT");
-	}
-	slr429_port->print_long((long)size,HEX);
-	if(slr429_settings.debug) 	Serial.print_long((long)size,HEX);
-	slr429_port->write(payload,size);
-	if(slr429_settings.debug) 	Serial.write(payload,size);
-	slr429_port->print("\r\n");
-	if(slr429_settings.debug) 	Serial.print("\r\n");
+	delay(10);
 	
-	start_time = millis();
-	i = 0;
-	while(1) {
-		if(slr429_port->available() > 0) {
-			data = slr429_port->read();
-			tx_result[i] = (char)data;
-			
-			if(slr429_settings.debug) {
-				Serial.write_byte(data);
-			}
-			i++;
-			if(data == '\n') {
-				tx_result[i]=NULL;
-				if(strncmp(strtok(tx_result,"=\r\n"),"*DT",sizeof(tx_result)) == 0) {
-					break;
-				} else {
-					result = -4;
-					goto error;
+	retry_cycle = slr429_settings.txretry + 1;
+	
+	while(retry_cycle> 0) {
+	
+		// set send
+		if (size<0x10)
+		{
+			slr429_port->print("@DT0");
+			if(slr429_settings.debug) 	Serial.print("@DT0");
+		} else {
+			slr429_port->print("@DT");
+			if(slr429_settings.debug) 	Serial.print("@DT");
+		}
+		slr429_port->print_long((long)size,HEX);
+		if(slr429_settings.debug) 	Serial.print_long((long)size,HEX);
+		slr429_port->write(payload,size);
+		if(slr429_settings.debug) 	Serial.write(payload,size);
+		slr429_port->print("\r\n");
+		if(slr429_settings.debug) 	Serial.print("\r\n");
+		
+		start_time = millis();
+		i = 0;
+		while(1) {
+			if(slr429_port->available() > 0) {
+				data = slr429_port->read();
+				tx_result[i] = (char)data;
+				
+				if(slr429_settings.debug) {
+					Serial.write_byte(data);
+				}
+				i++;
+				if(data == '\n') {
+					tx_result[i]=NULL;
+					if(strncmp(strtok(tx_result,"=\r\n"),"*DT",sizeof(tx_result)) == 0) {
+						break;
+					} else {
+						if(slr429_settings.debug) {
+							Serial.println("Error: command not accepted");
+						}
+						retry_cycle = 0;
+						result = -4;
+						goto error;
+					}
 				}
 			}
-		}
-		if((start_time+5000) < millis()) {
-			result = -5;
-			goto error;
-		}
-	}
-	i = 0;
-	while(1) {
-		if(slr429_port->available() > 0) {
-			data = slr429_port->read();
-			tx_result[i] = (char)data;
-			i++;
-			if(slr429_settings.debug) {
-				Serial.write_byte(data);
+			if((start_time+10000) < millis()) {
+				if(slr429_settings.debug) {
+					Serial.println("Error:: *DT");
+				}
+				retry_cycle = 0;
+				result = -5;
+				goto error;
 			}
-			if(data == '\n') {
-				tx_result[i]=NULL;
-				if(strncmp(strtok(tx_result,"\r\n"),"*IR=03",sizeof(tx_result)) == 0) {	// OK
-					result = 0;
-					break;
-				} else {			// CCA error
-					result = -6;
-					break;
+		}
+		i = 0;
+		while(1) {
+			if(slr429_port->available() > 0) {
+				data = slr429_port->read();
+				tx_result[i] = (char)data;
+				i++;
+				if(slr429_settings.debug) {
+					Serial.write_byte(data);
+				}
+				if(data == '\n') {
+					tx_result[i]=NULL;
+					if(strncmp(strtok(tx_result,"\r\n"),"*IR=03",sizeof(tx_result)) == 0) {	// OK
+						retry_cycle = 0;
+						result = 0;
+						break;
+					} else {			// CCA error
+						if(slr429_settings.debug) {
+							Serial.print("Error: carrier sense::	");
+							Serial.println_long(retry_cycle, DEC);
+						}
+						delay(1000);
+						retry_cycle--;
+						result =  -8;
+						break;
+					}
 				}
 			}
-		}
-		if((start_time+5000) < millis()) {
-			result = -7;
-			goto error;
+			if((start_time+10000) < millis()) {
+				if(slr429_settings.debug) {
+					Serial.println("Error:: timeout");
+				}
+				result = -7;
+				goto error;
+			}
 		}
 	}
 	

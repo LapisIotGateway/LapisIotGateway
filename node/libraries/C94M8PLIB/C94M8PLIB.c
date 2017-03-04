@@ -63,19 +63,19 @@ bool c94m8p_getGNRMC(char *gnrmc,int maxsize,unsigned long timeout)
 		if(data >= 0) {
 			if(maxsize > length) {
 				gnrmc[length] = (unsigned char) data;
-			}
-			if(data == '\n') {
-				memcpy(work,gnrmc,sizeof(work));
-				header = strtok(work,",\r\n");
-				if(strcmp(header,"$GNRMC")==0) {
-					gnrmc[length+1]=NULL;
-					result = true;
-					break;
+				if(data == '\n') {
+					memcpy(work,gnrmc,sizeof(work));
+					header = strtok(work,",\r\n");
+					if(strcmp(header,"$GNRMC")==0) {
+						gnrmc[length+1]=NULL;
+						result = true;
+						break;
+					} else {
+						length=0;
+					}
 				} else {
-					length=0;
+					length++;
 				}
-			} else {
-				length++;
 			}
 		}
 		current_time=millis();

@@ -1,34 +1,43 @@
 #include "sensor_node_ide.h"		// Additional Header
 
 #define RF_MODE LORA429				// Chose from LORA429, FSK429, LORA920, FSK920
-//#define RTK
-#define DEBUG 1
 
 #if RF_MODE == FSK920
 	#define RF_MODULE		rm92a
 	#define RM92A
+	#define RTK						// if it is commented out, send RTK is disable, and start measuring sensor by "@trigger" from gateway
 #elif RF_MODE == LORA920
 	#define RF_MODULE		rm92a
 	#define RM92A
+	#define RTK						// if it is commented out, send RTK is disable, and start measuring sensor by "@trigger" from gateway
 #elif RF_MODE == FSK429
 	#define RF_MODULE		slr429
 	#define SLR429
+	#define DEBUG 1
 #elif RF_MODE == LORA429
 	#define RF_MODULE		slr429
 	#define SLR429
+	#define DEBUG 1
 #else
 	#error RF_MODE must be set
 #endif
 
+#define TX_ADDR 2
+
+// COMMON PARAMETER
+#define ORANGE				25
+#define BLUE				26
+
+
 #ifdef	RM92A
 // LORA 920 Initial Parameter
-	#define	LORA920_BOOT0		4
-	#define	LORA920_RST			5
+	#define	LORA920_BOOT0		4			// GPIO setting
+	#define	LORA920_RST			5			// GPIO setting
 	
-	#define RF_CH				24
-	#define RF_PANID			0x1234
-	#define RF_SRC				0x2
-	#define RF_DST				0x1
+	#define RF_CH				24			// RF frequency. Choose from 24-61
+	#define RF_PANID			0x1234		// PANID choose from 0x0000 - 0xFFFD
+//	#define RF_SRC				0x2			// my address. choose from 2-3
+	#define RF_DST				0x1			// gateway address. it should be 1
 	
 	static const t_RM92A_CONFIG config =
 	{
@@ -41,15 +50,15 @@
 
 // LORA429 Initial Parameter
 #ifdef SLR429
-	#define	LORA429_RTS			2
-	#define	LORA429_CTS			3
-	#define	LORA429_INI			4
-	#define	LORA429_RSTB		5
+	#define	LORA429_RTS			2			// GPIO setting
+	#define	LORA429_CTS			3			// GPIO setting
+	#define	LORA429_INI			4			// GPIO setting
+	#define	LORA429_RSTB		5			// GPIO setting
 	
-	#define RF_CH				27
-	#define RF_PANID			0
-	#define RF_SRC				2
-	#define RF_DST				1
+	#define RF_CH				27			// RF frequency  Choose from xxx-xxx
+	#define RF_PANID			0			// PANID choose from 0 - FF
+//	#define RF_SRC				3			// my address. choose from 2 - 3.
+	#define RF_DST				1			// gateway address. it should be 1
 	
 	static const t_SLR429_CONFIG config ={
 		LORA429_RTS,	//		char rts;
@@ -61,6 +70,19 @@
 	static struct s_slr429_settings param;
 #endif
 
+static unsigned short rf_my_addr;
+
+
+// BME280 related parameters
+#define	BME280_I2C_ADDR			0x76		//I2C Address
+#define	BME280_OSRS_T			1			//Temperature oversampling x 1
+#define	BME280_OSRS_P			1			//Pressure oversampling x 1
+#define	BME280_OSRS_H			1			//Humidity oversampling x 1
+#define	BME280_MODE				1			//Normal mode
+#define	BME280_T_SB				5			//Tstandby 1000ms
+#define	BME280_FILTER			0			//Filter off
+#define BME280_SPI_EN			0			//3-wire SPI Disable
+char sensor_result[64];						// Sensor result
 // RTK parameters
 #ifdef RTK
 	struct s_rtk_param {
@@ -159,11 +181,8 @@
 #endif
 
 
-// COMMON PARAMETER
-#define ORANGE				25
-#define BLUE				26
 
-unsigned char gnss_payload[100];
+unsigned char gnss_payload[256];
 char rf_payload[256];
 
 
@@ -179,6 +198,7 @@ static bool rx_nortk_packet_filter(char* payload) {
 	return result;
 }
 
+
 void setup() {
 	// put your setup code here, to run once:
 	int result;
@@ -187,12 +207,17 @@ void setup() {
 	pinMode(ORANGE,OUTPUT);
 	pinMode(BLUE,OUTPUT);
 
+	pinMode(A0,INPUT_PULLUP);
+	
+
+	// Sensor Init
+	Wire.begin();
+	bme280.setMode(BME280_I2C_ADDR, BME280_OSRS_T, BME280_OSRS_P, BME280_OSRS_H, BME280_MODE, BME280_T_SB,
+		BME280_FILTER, BME280_SPI_EN);
+	bme280.readTrim();
+
 	// set GPS modle
-#ifdef RTK
 	c94m8p.init(&Serial,9600L);
-#else
-	c94m8p.init(&Serial,115200L);
-#endif
 
 	RF_MODULE.getMode(&param);
 #ifdef DEBUG
@@ -212,7 +237,9 @@ void setup() {
 		}
 	}
 
-	result = RF_MODULE.begin(RF_MODE,RF_CH,RF_PANID,RF_SRC);
+	rf_my_addr = (digitalRead(A0)==0) ? 2 : 3;
+
+	result = RF_MODULE.begin(RF_MODE,RF_CH,RF_PANID,rf_my_addr);
 	
 	if(result != 0) {
 		while(1) {
@@ -230,6 +257,7 @@ void loop() {
 	unsigned short src;
 	static bool isSendRtk = 0;
 	static bool isSendGnss = 0;
+	double temp_act, press_act, hum_act;
 	short rssi;
 	int result;
 	
@@ -272,14 +300,38 @@ void loop() {
 	}
 #endif
 	if(isSendGnss) {
-		if(c94m8p.getGNRMC(gnss_payload,sizeof(gnss_payload),5000)){
-			digitalWrite(BLUE,HIGH);
-			RF_MODULE.send(1,gnss_payload,NULL);
-		} else {
-			digitalWrite(ORANGE,HIGH);
-			RF_MODULE.send(1,"GPS NOSIGNAL",NULL);
+		if(TX_ADDR) {
+			gnss_payload[0] = '0'+rf_my_addr;
+			gnss_payload[1] = ',';			
+			gnss_payload[2] = NULL;			
 		}
+		if(c94m8p.getGNRMC(gnss_payload+TX_ADDR,sizeof(gnss_payload),5000)) {
+			strtok(gnss_payload,"\r\n");
+			strcat(gnss_payload,",");
+			Serial.println("success to get GNRMC");
+		}
+		digitalWrite(ORANGE,HIGH);
+		Print.init(sensor_result,sizeof(sensor_result));
+		bme280.setMode(BME280_I2C_ADDR, BME280_OSRS_T, BME280_OSRS_P, BME280_OSRS_H, 
+						BME280_MODE, BME280_T_SB, BME280_FILTER, BME280_SPI_EN);
+		bme280.readData(&temp_act, &press_act, &hum_act);
+		Serial.println("success to get BME280");
+		Print.p("BME280,");
+		Print.d(temp_act,1);
+		Print.p(",");
+		Print.d(hum_act,2);
+		Print.p(",");
+		Print.d(press_act,2);
+		strcat(gnss_payload,sensor_result);
 		isSendGnss = false;
+		result = RF_MODULE.send(1,gnss_payload,NULL);
+
+#ifdef DEBUG
+		if(result < 0) {
+			Serial.print("SLR429 ERROR:: ");
+			Serial.println_long(result, DEC);
+		}
+#endif
 	}
 	return;
 }
