@@ -25,4 +25,8 @@ sleep 3
 # wifi switch monitoring
 /home/pi/gateway/wifi_sw_ctrl /home/pi/gateway/wifi_toggle.sh  &
 
+# ip masquerade
+/sbin/modprobe nf_nat
+/sbin/iptables -t nat -A POSTROUTING -o usb0 -j MASQUERADE
+
 exit 0

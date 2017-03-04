@@ -1,6 +1,22 @@
+※前提条件
+LTE以外のUSBシリアル機器を接続しないこと
+
+(1) LTEのUSBシリアル有効化
+sudo modprobe usbserial vendor=0x2a9e product=0x0103
+
+(2) ttyUSB1に接続
+cu -l ttyUSB1
+
+(3) ATコマンドを打つ
+============================
+AT+IFC=0,0
+OK
 AT+CGDCONT=2,"IP","iijmio.jp"
 OK
 AT*PDPP=2,2,"iij","mio@iij"
 OK
 AT*DPATH_AUTO=1,2
 OK
+
+(4) 再起動
+sudo reboot

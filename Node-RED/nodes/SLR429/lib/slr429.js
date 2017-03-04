@@ -289,13 +289,16 @@ function write(self, data, callback) {
 
 function wait(self, com, regex, timeout, callback) {
     var timer = setTimeout(function() {
+		self._wait = null;
         callback(new Error((com + " timeout")), null);
     }, timeout);
 
     self._wait = regex;
     self._callback = function(err, m) {
         clearTimeout(timer);
-        callback(err, m);
+		setTimeout(function() {
+			callback(err, m);
+		}, 100);
     };
 }
 

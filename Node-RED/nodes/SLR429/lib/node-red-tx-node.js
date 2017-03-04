@@ -23,7 +23,11 @@ module.exports = function(RED) {
         })
         .then(function() {
             return new Promise(function(resolve, reject) {
-                port.gi(gid, errorHandle(resolve, reject));
+                if (gid != bgid) {
+                    port.gi(gid, errorHandle(resolve, reject));
+                } else {
+                    resolve();
+                }
             });
         })
         .then(function() {
@@ -33,7 +37,11 @@ module.exports = function(RED) {
         })
         .then(function() {
             return new Promise(function(resolve, reject) {
-                port.gi(bgid, errorHandle(resolve, reject));
+                if (gid != bgid) {
+                    port.gi(bgid, errorHandle(resolve, reject));
+				} else {
+					resolve();
+				}
             });
         })
         .catch(function(err) {

@@ -31,10 +31,8 @@ module.exports = function(RED) {
             port._closing = true;
         })
         .then(function() {
-            return new Promise(function(resolve, reject) {
-                port.close(function(err) {
-                    err ? reject(err) : resolve();
-                });
+            return new Promise(function(resolve) {
+                port.close(resolve);
             });
         })
         .then(setting(port, "open", serialConfig))
@@ -121,7 +119,7 @@ module.exports = function(RED) {
                 var conn = connections[id];
                 var params = config(serialConfig);
                 reset(conn, params, function(err) {
-                    if (err) { error(("serialport(" + id + ") close error: " + (err.toString()))); }
+                    if (err) { error(("serialport(" + id + ") reset error: " + (err.toString()))); }
                 });
             }
         }
