@@ -7,10 +7,12 @@ NODEREDDIR=$PI/.node-red
 
 # update vnc
 cp $REPOSITORY/Gateway/memo/lpwa_gw_start $PI
-cp $REPOSITORY/lpwagw.desktop $PI/.config/autostart
-cp $REPOSITORY/x11vnc.desktop $PI/.config/autostart
+cp $REPOSITORY/Gateway/memo/lpwagw.desktop $PI/.config/autostart
+cp $REPOSITORY/Gateway/memo/x11vnc.desktop $PI/.config/autostart
 
 # update script
+rm -rf $SCRIPTDIR
+mkdir $SCRIPTDIR
 cp $REPOSITORY/Gateway/gw_peri $SCRIPTDIR
 cp $REPOSITORY/Gateway/wifi_sw_ctrl $SCRIPTDIR
 cp $REPOSITORY/Gateway/wifi_toggle.sh $SCRIPTDIR
