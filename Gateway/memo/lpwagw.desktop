@@ -1,0 +1,4 @@
+[Desktop Entry]
+Encoding=UTF-8
+Exec=lxterminal -e "/home/pi/lpwa_gw_start"
+Terminal=true
