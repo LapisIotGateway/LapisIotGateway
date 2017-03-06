@@ -41,7 +41,14 @@ module.exports = function(RED) {
                     node.timer = null;
                 }, node.interval);
             } else {
-                node.state = State.None;
+                node.timer = setTimeout(function() {
+                    if (node.queue.length > 0) {
+                        excute(node);
+                    } else {
+                        node.state = State.None;
+                    }
+                    node.timer = null;
+                }, node.delay);
             }
         }
 
