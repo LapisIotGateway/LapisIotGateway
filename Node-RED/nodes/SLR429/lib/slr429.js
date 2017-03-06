@@ -22,6 +22,7 @@ var REGEX_DATA = /^\*DR=([0-9A-F]{2})(.*)$/;
 var MODE_TIMER = 5000;
 var COMMAND_TIMER = 2000;
 var WRITE_TIMER = 10000;
+var COMMAND_RETRY_MAX = 3;
 
 var MAX_BYTE = 0xFF;
 
@@ -35,7 +36,8 @@ function SLR429(dev) {
     this._promise = new PromiseWrapper();
     this._readline = new Readline("\r\n", "utf-8");
     this._readline.on("data", function(data) {
-        return parsedLine(self, data); });
+        return parsedLine(self, data);
+    });
 }
 util.inherits(SLR429, EventEmitter);
 
@@ -108,22 +110,39 @@ SLR429.prototype.close = function(callback) {
 SLR429.prototype.mo = function(mode, callback) {
     var self = this;
 
+     if (!SLR429Util.between(mode, 0, 4)) {
+         setImmediate(function() {
+             callback(new Error("Invalid @MO parameter : " + mode));
+         });
+     }
+
+     function mo(self, mode, retry, max) {
+         return Promise.resolve()
+            .then(function() {
+                var fix = ("00" + (mode.toString(16))).slice(-2);
+                var command = "@MO" + fix;
+                write(self, command);
+            })
+            .then(function() {
+                return new Promise(function(resolve, reject) {
+                    wait(self, "@MO", WAIT_MO[mode], MODE_TIMER, function(err) {
+                        err ? reject(err) : resolve();
+                    });
+                });
+            })
+            .catch(function(err) {
+                if (retry === max) {
+                    throw err;
+                } else {
+                    Debug("Retry because " + err.toString());
+                    mo(self, mode, retry+1, max);
+                }
+            });
+     }
+
     this._promise
         .then(function() {
-            if (!SLR429Util.between(mode, 0, 4)) {
-                throw new Error(("Invalid @MO parameter : " + mode)); }
-        })
-        .then(function() {
-            var fix = ("00" + (mode.toString(16))).slice(-2);
-            var command = "@MO" + fix;
-            write(self, command);
-        })
-        .then(function() {
-            return new Promise(function(resolve, reject) {
-                wait(self, "@MO", WAIT_MO[mode], MODE_TIMER, function(err) {
-                    err ? reject(err) : resolve();
-                });
-            });
+            return mo(self, mode, 0, COMMAND_RETRY_MAX);
         })
         .then(function() {
             // Binary mode check
@@ -156,16 +175,32 @@ SLR429.prototype.gi = function(value, callback) {
 SLR429.prototype.rs = function(callback) {
     var self = this;
 
-    var com = "@RS";
+    function rs(self, retry, max) {
+        var com = "@RS";
+        return Promise.resolve()
+            .then(function() {
+                return write(self, com);
+            })
+            .then(function() {
+                return new Promise(function(resolve, reject) {
+                    wait(self, com, /^RSSI=(-?\d{1,3})dBm$/, COMMAND_TIMER, function(err, m) {
+                        err ? reject(err) : resolve(m);
+                    });
+                });
+            })
+            .catch(function(err) {
+                if (retry === max) {
+                    throw err;
+                } else {
+                    Debug("Retry because " + err.toString());
+                    rs(self, retry+1, max);
+                }
+            });
+    }
+
     this._promise
         .then(function() {
-            return write(self, com); })
-        .then(function() {
-            return new Promise(function(resolve, reject) {
-                wait(self, com, /^RSSI=(-?\d{1,3})dBm$/, COMMAND_TIMER, function(err, m) {
-                    err ? reject(err) : resolve(m);
-                });
-            });
+            return rs(self, 0, COMMAND_RETRY_MAX);
         })
         .then(function(m) { callback(null, Number(m[1])); })
         .catch(function(err) { callback(err, null); });
@@ -179,19 +214,34 @@ SLR429.prototype.dt = function(str, callback) {
     var offset = 0;
 
     (function(promise) {
+        function dt(self, retry, max, buffer) {
+            return Promise.resolve()
+                .then(function() {
+                    send(self, target);
+                })
+                .then(function() {
+                    return new Promise(function(resolve, reject) {
+                        wait(self, "@DT", /^\*IR=([0-9A-F]{2})$/, WRITE_TIMER, function(err, m) {
+                            err ? reject(err) : resolve(m);
+                        });
+                    });
+                })
+                .catch(function(err) {
+                    if (retry === max) {
+                        throw err;
+                    } else {
+                        Debug("Retry because " + err.toString());
+                        dt(self, retry+1, max, buffer);
+                    }
+                });
+        }
+
         do {
             var wlen = Math.min(MAX_BYTE, len - offset);
             var target = buffer.slice(offset, offset + wlen);
             promise
             .then(function() {
-                send(self, target);
-            })
-            .then(function() {
-                return new Promise(function(resolve, reject) {
-                    wait(self, "@DT", /^\*IR=([0-9A-F]{2})$/, WRITE_TIMER, function(err, m) {
-                        err ? reject(err) : resolve(m);
-                    });
-                });
+                return dt(self, 0, COMMAND_RETRY_MAX, target);
             })
             .then(function(m) {
                 var code = parseInt(m[1], 16);
@@ -244,22 +294,39 @@ function setup(self, serial) {
 }
 
 function setting(self, com, value, min, max, regex, timeout, callback) {
+    if (!SLR429Util.between(value, min, max)) {
+        setImmediate(function() {
+            callback(new Error("Invalid " + com + " parameter : " + value));
+        })
+    }
+
+    var fix = ("00" + (value.toString(16))).slice(-2);
+    var command = "" + com + fix;
+    function _setting(self, retry, max, com, command, regex, timeout) {
+        return Promise.resolve()
+            .then(function() {
+                write(self, command);
+            })
+            .then(function() {
+                return new Promise(function(resolve, reject) {
+                    wait(self, com, regex, timeout, function(err) {
+                        err ? reject(err) : resolve();
+                    });
+                });
+            })
+            .catch(function(err) {
+                if (retry === max) {
+                    throw err;
+                } else {
+                    Debug("Retry because " + err.toString());
+                    _setting(self, retry+1, max, com, command, regex, timeout);
+                }
+            });
+    }
+
     self._promise
         .then(function() {
-            if (!SLR429Util.between(value, min, max)) {
-                throw new Error("Invalid " + com + " parameter : " + value); }
-        })
-        .then(function() {
-            var fix = ("00" + (value.toString(16))).slice(-2);
-            var command = "" + com + fix;
-            write(self, command);
-        })
-        .then(function() {
-            return new Promise(function(resolve, reject) {
-                wait(self, com, regex, timeout, function(err) {
-                    err ? reject(err) : resolve();
-                });
-            });
+            return _setting(self, 0, COMMAND_RETRY_MAX, com, command, regex, timeout);
         })
         .then(callback)
         .catch(callback);
