@@ -12,11 +12,15 @@ module.exports = function(RED) {
         function success(node) {
             node.queue.shift();
             node.counter = 0;
-            if (node.queue.length > 0) {
-                excute(node);
-            } else {
-                node.state = State.None;
-            }
+
+            node.timer = setTimeout(function() {
+                if (node.queue.length > 0) {
+                    excute(node);
+                } else {
+                    node.state = State.None;
+                }
+                node.timer = null;
+            }, node.delay);
         }
 
         function fail(node) {
@@ -107,6 +111,7 @@ module.exports = function(RED) {
             var node = this;
 
             node.config = RED.nodes.getNode(n.config);
+            node.delay = parseInt(n.delay) || 0;
             node.timeout = parseInt(n.timeout) || parseInt(RED.settings.httpRequestTimeout) || 120000;
             node.retry = n.retry ? parseInt(n.retry) : Number.POSITIVE_INFINITY;
             node.interval = parseInt(n.interval) || 0;
