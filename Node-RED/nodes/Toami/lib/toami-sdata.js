@@ -37,10 +37,15 @@ ToamiSdata.prototype.request = function(data) {
     }, {});
 
     var emitter = new events.EventEmitter();
+    var timer = null;
 
     DEBUG("[Toami] Request Start", options, content);
     var req = https.request(options, function(res) {
-        DEBUG("[Toami] Request Complete", res.statusCode, res.statusMessage);
+        DEBUG("[Toami] Request Complete", res.statusCode);
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
         var code = res.statusCode;
         if (code === 200) {
             emitter.emit("ok");
@@ -50,15 +55,20 @@ ToamiSdata.prototype.request = function(data) {
     });
     req.on("error", function(err) {
         DEBUG("[Toami] Request Error", err);
-        emitter.emit("error", err, options);
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+            emitter.emit("error", err, options);
+        }
     });
-    req.setTimeout(timeout, function() {
+    timer = setTimeout(function() {
         DEBUG("[Toami] Request Timeout");
+        timer = null;
         setImmediate(function() {
             emitter.emit("timeout");
         });
         req.abort();
-    });
+    }, timeout);
     req.write(JSON.stringify(content));
     req.end();
 
