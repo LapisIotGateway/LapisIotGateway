@@ -6,12 +6,11 @@ module.exports = function(RED) {
     var slr429 = require("./slr429");
 
     function error(message) {
-        RED.log.error(("SLR429 Connection: " + message));
+        RED.log.error("SLR429 Connection: " + message);
     }
 
-    function open(port, serialConfig, slr429Config, callback) {
-        Promise.resolve()
-        .then(setting(port, "open", serialConfig))
+    function config(port, serialConfig, slr429Config, callback) {
+        return Promise.resolve()
         .then(setting(port, "mo", slr429Config.mode))
         .then(setting(port, "ch", slr429Config.ch))
         .then(setting(port, "gi", slr429Config.gid))
@@ -21,8 +20,17 @@ module.exports = function(RED) {
         .then(function() {
             setup(port, serialConfig);
             callback(null);
-        })
-        .catch(callback);
+        });
+    }
+
+    function open(port, serialConfig, slr429Config, callback) {
+        port.open(serialConfig, function(err) {
+            if (err) {
+                callback(err);
+            } else {
+                config();
+            }
+        });
     }
 
     function reset(port, serialConfig, callback) {
@@ -45,25 +53,24 @@ module.exports = function(RED) {
 
     function setup(port, serialConfig) {
         port.on("error", function(err) {
-            error(("serialport(" + (serialConfig.device) + ") error: " + (err.toString())));
+            error("serialport(" + (serialConfig.device) + ") error: " + err.toString());
         });
 
         port.on("close", function() {
             if (!port._closing) {
-                error(("serialport(" + (serialConfig.device) + ") closed unexpectedly"));
+                error("serialport(" + (serialConfig.device) + ") closed unexpectedly");
             }
         });
     }
 
     function setting(port, command, value) {
         return function() {
-            return new Promise(function(resolve, reject) {
+            return new Promise(function(resolve) {
                 port[command](value, function(err) {
-                    if (!err) {
-                        resolve();
-                    } else {
-                        reject(err);
+                    if (err) {
+                        error("serialport wran: " + err.toString());
                     }
+                    resolve();
                 });
             });
         };

@@ -80,30 +80,34 @@ module.exports = function(RED) {
         });
     }
 
+    function input(node, msg) {
+        if (!msg.hasOwnProperty("payload")) {
+            return;
+        }
+
+        var payload = msg.payload;
+        if (node.port.binMode) {
+            node.port.write(payload, function(err) {
+                var msg = { result: !err, error: err };
+                node.send(msg);
+            });
+        } else {
+            var gid = msg.gid || node.gid;
+            var did = msg.did || node.did;
+            write(node, gid, bgid, did, payload);
+        }
+    }
+
     function setup(node, serialConfig, slr429Config) {
         node.port = slr429Pool.get(serialConfig, slr429Config);
 
         var bgid = slr429Config.gid;
-        node.on("input", function(msg) {
-            if (!msg.hasOwnProperty("payload")) {
-                return;
-            }
-
-            var payload = msg.payload;
-            if (node.port.binMode) {
-                node.port.write(payload, function(err) {
-                    var msg = { result: !err, error: err };
-                    node.send(msg);
-                });
-            } else {
-                var gid = msg.gid || node.gid;
-                var did = msg.did || node.did;
-                write(node, gid, bgid, did, payload);
-            }
-        });
 
         node.port.on("ready", function() {
             node.status({ fill: "green", shape: "dot", text: "node-red:common.status.connected" });
+            node.on("input", function(msg) {
+                input(node, msg);
+            });
         });
 
         node.port.on("error", function() {
