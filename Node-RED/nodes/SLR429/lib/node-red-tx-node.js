@@ -2,6 +2,10 @@ module.exports = function(RED) {
 
     var Promise = require("es6-promise").Promise;
     var slr429Pool = require("./node-red-pool")(RED);
+    var CarrierSenseError = require("./slr429").CarrierSenseError;
+
+    var DT_RETRY_INTERVAL = 1000;
+    var DT_RETRY_MAX = 5;
 
     function errorHandle(resolve, reject) {
         return function(err) {
@@ -11,6 +15,30 @@ module.exports = function(RED) {
                 reject(err);
             }
         };
+    }
+
+    function dt(port, retry, max, payload) {
+        return Promise.resolve()
+        .then(function() {
+            return new Promise(function(resolve, reject) {
+                port.dt(payload, errorHandle(resolve, reject));
+            });
+        })
+        .catch(function(err) {
+            if (err instanceof CarrierSenseError) {
+                if (retry !== max) {
+                    return new Promise(function(resolve) {
+                        setTimeout(function() {
+                            resolve();
+                        }, DT_RETRY_INTERVAL);
+                    })
+                    .then(function() {
+                        return dt(port, retry+1, max, payload);
+                    })
+                }
+            }
+            throw err;
+        });
     }
 
     function write(node, gid, bgid, did, payload) {
@@ -31,9 +59,7 @@ module.exports = function(RED) {
             });
         })
         .then(function() {
-            return new Promise(function(resolve, reject) {
-                port.dt(payload, errorHandle(resolve, reject));
-            });
+            return dt(port, 0, DT_RETRY_MAX, payload);
         })
         .then(function() {
             return new Promise(function(resolve, reject) {
@@ -46,7 +72,11 @@ module.exports = function(RED) {
         })
         .catch(function(err) {
             node.error(err.toString());
-            slr429Pool.reconnect(node.serialConfig);
+            if (err instanceof CarrierSenseError) {
+                // DO NOTHING
+            } else {
+                slr429Pool.reconnect(node.serialConfig);
+            }
         });
     }
 

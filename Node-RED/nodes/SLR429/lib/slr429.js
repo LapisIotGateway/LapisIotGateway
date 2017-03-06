@@ -181,24 +181,24 @@ SLR429.prototype.dt = function(str, callback) {
     (function(promise) {
         do {
             var wlen = Math.min(MAX_BYTE, len - offset);
-            var target = buffer.slice(offset, offset + wlen)
+            var target = buffer.slice(offset, offset + wlen);
             promise
-                .then(function() {
-                    return send(self, target);
-                })
-                .then(function() {
-                    return new Promise(function(resolve, reject) {
-                        wait(self, "@DT", /^\*IR=([0-9A-F]{2})$/, WRITE_TIMER, function(err, m) {
-                            err ? reject(err) : resolve(m);
-                        });
+            .then(function() {
+                send(self, target);
+            })
+            .then(function() {
+                return new Promise(function(resolve, reject) {
+                    wait(self, "@DT", /^\*IR=([0-9A-F]{2})$/, WRITE_TIMER, function(err, m) {
+                        err ? reject(err) : resolve(m);
                     });
-                })
-                .then(function(m) {
-                    var code = parseInt(m[1], 16);
-                    if (code !== 3) {
-                        throw new Error("Error : IR(" + code + ")");
-                    }
                 });
+            })
+            .then(function(m) {
+                var code = parseInt(m[1], 16);
+                if (code !== 3) {
+                   throw new CarrierSenseError("Error : IR(" + code + ")");
+                }
+            });
             offset += MAX_BYTE;
         } while (offset < len);
         return promise;
@@ -206,7 +206,6 @@ SLR429.prototype.dt = function(str, callback) {
     .then(callback)
     .catch(callback);
 };
-
 
 SLR429.Mode = {
     FSKBinary: 0,
@@ -290,7 +289,7 @@ function write(self, data, callback) {
 function wait(self, com, regex, timeout, callback) {
     var timer = setTimeout(function() {
 		self._wait = null;
-        callback(new Error((com + " timeout")), null);
+        callback(new TimeoutError((com + " timeout")), null);
     }, timeout);
 
     self._wait = regex;
@@ -319,7 +318,7 @@ function parsedLine(self, data) {
     } else if (self._wait && REGEX_ERROR.test(data)) {
         var m$1 = REGEX_ERROR.exec(data);
         var eno = m$1[1];
-        self._callback(new Error("Error : " + eno));
+        self._callback(new CommandError("Error : " + eno));
     } else if (REGEX_DATA.test(data)) {
         var m$2 = REGEX_DATA.exec(data);
         var str = m$2[2];
@@ -330,3 +329,22 @@ function parsedLine(self, data) {
 }
 
 module.exports = SLR429;
+
+function TimeoutError(message) {
+    Error.call(this, message)
+}
+util.inherits(TimeoutError, Error);
+
+function CommandError(message) {
+    Error.call(this, message)
+}
+util.inherits(CommandError, Error);
+
+function CarrierSenseError(message) {
+    Error.call(this, message)
+}
+util.inherits(CarrierSenseError, Error);
+
+SLR429.TimeoutError = TimeoutError;
+SLR429.CommandError = CommandError;
+SLR429.CarrierSenseError = CarrierSenseError;
