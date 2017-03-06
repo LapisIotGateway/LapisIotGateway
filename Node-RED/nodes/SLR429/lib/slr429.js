@@ -251,7 +251,7 @@ function setting(self, com, value, min, max, regex, timeout, callback) {
         })
         .then(function() {
             var fix = ("00" + (value.toString(16))).slice(-2);
-            var command = "" + com + fix + "/W";
+            var command = "" + com + fix;
             write(self, command);
         })
         .then(function() {

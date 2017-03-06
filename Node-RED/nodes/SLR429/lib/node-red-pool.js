@@ -12,12 +12,12 @@ module.exports = function(RED) {
     function open(port, serialConfig, slr429Config, callback) {
         Promise.resolve()
         .then(setting(port, "open", serialConfig))
+        .then(setting(port, "mo", slr429Config.mode))
         .then(setting(port, "ch", slr429Config.ch))
         .then(setting(port, "gi", slr429Config.gid))
         .then(setting(port, "di", slr429Config.did))
         .then(setting(port, "ei", slr429Config.eid))
         .then(setting(port, "sf", slr429Config.chip))
-        .then(setting(port, "mo", slr429Config.mode))
         .then(function() {
             setup(port, serialConfig);
             callback(null);
