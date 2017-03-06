@@ -356,7 +356,7 @@ function write(self, data, callback) {
 function wait(self, com, regex, timeout, callback) {
     var timer = setTimeout(function() {
 		self._wait = null;
-        callback(new TimeoutError((com + " timeout")), null);
+        callback(new Error((com + " timeout")), null);
     }, timeout);
 
     self._wait = regex;
@@ -385,7 +385,7 @@ function parsedLine(self, data) {
     } else if (self._wait && REGEX_ERROR.test(data)) {
         var m$1 = REGEX_ERROR.exec(data);
         var eno = m$1[1];
-        self._callback(new CommandError("Error : " + eno));
+        self._callback(new Error("Error : " + eno));
     } else if (REGEX_DATA.test(data)) {
         var m$2 = REGEX_DATA.exec(data);
         var str = m$2[2];
@@ -397,21 +397,13 @@ function parsedLine(self, data) {
 
 module.exports = SLR429;
 
-function TimeoutError(message) {
-    Error.call(this, message)
-}
-util.inherits(TimeoutError, Error);
-
-function CommandError(message) {
-    Error.call(this, message)
-}
-util.inherits(CommandError, Error);
-
 function CarrierSenseError(message) {
-    Error.call(this, message)
+    this.message = message;
+    var last_part = new Error().stack.match(/[^\s]+$/);
+    this.stack = `${this.name} at ${last_part}`;
 }
 util.inherits(CarrierSenseError, Error);
+CarrierSenseError.prototype.name = "CarrierSenseError";
+CarrierSenseError.prototype.message = "";
 
-SLR429.TimeoutError = TimeoutError;
-SLR429.CommandError = CommandError;
 SLR429.CarrierSenseError = CarrierSenseError;
