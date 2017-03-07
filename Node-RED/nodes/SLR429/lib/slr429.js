@@ -135,7 +135,7 @@ SLR429.prototype.mo = function(mode, callback) {
                     throw err;
                 } else {
                     Debug("Retry because " + err.toString());
-                    mo(self, mode, retry+1, max);
+                    return mo(self, mode, retry+1, max);
                 }
             });
      }
@@ -231,7 +231,7 @@ SLR429.prototype.dt = function(str, callback) {
                         throw err;
                     } else {
                         Debug("Retry because " + err.toString());
-                        dt(self, retry+1, max, buffer);
+                        return dt(self, retry+1, max, buffer);
                     }
                 });
         }
