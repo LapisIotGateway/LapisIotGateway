@@ -59,9 +59,8 @@ var location = (function(gnrmc) {
 
     function translate(value) {
         var degrees = parseInt(value[1], 10);
-        var minutes = parseInt(value[2], 10);
-        var seconds = parseFloat(value[3].replace(/(\d{2})(\d*)/, "$1.$2"));
-        return degrees + (minutes / 60) + (seconds / 3600);
+        var minutes = parseInt(value[2] + "." + value[3], 10);
+        return degrees + (minutes / 60);
     }
 
     if (!gnrmc) {
