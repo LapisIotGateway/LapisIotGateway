@@ -9,7 +9,7 @@ module.exports = function(RED) {
         RED.log.error("SLR429 Connection: " + message);
     }
 
-    function config(port, serialConfig, slr429Config, callback) {
+    function prepare(port, serialConfig, slr429Config, callback) {
         return Promise.resolve()
         .then(setting(port, "mo", slr429Config.mode))
         .then(setting(port, "ch", slr429Config.ch))
@@ -28,7 +28,7 @@ module.exports = function(RED) {
             if (err) {
                 callback(err);
             } else {
-                config();
+                prepare(port, serialConfig, slr429Config, callback);
             }
         });
     }

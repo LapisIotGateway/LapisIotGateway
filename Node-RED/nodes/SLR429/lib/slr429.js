@@ -193,7 +193,7 @@ SLR429.prototype.rs = function(callback) {
                     throw err;
                 } else {
                     Debug("Retry because " + err.toString());
-                    rs(self, retry+1, max);
+                    return rs(self, retry+1, max);
                 }
             });
     }
@@ -300,8 +300,6 @@ function setting(self, com, value, min, max, regex, timeout, callback) {
         })
     }
 
-    var fix = ("00" + (value.toString(16))).slice(-2);
-    var command = "" + com + fix;
     function _setting(self, retry, max, com, command, regex, timeout) {
         return Promise.resolve()
             .then(function() {
@@ -319,11 +317,13 @@ function setting(self, com, value, min, max, regex, timeout, callback) {
                     throw err;
                 } else {
                     Debug("Retry because " + err.toString());
-                    _setting(self, retry+1, max, com, command, regex, timeout);
+                    return _setting(self, retry+1, max, com, command, regex, timeout);
                 }
             });
     }
 
+    var fix = ("00" + (value.toString(16))).slice(-2);
+    var command = "" + com + fix;
     self._promise
         .then(function() {
             return _setting(self, 0, COMMAND_RETRY_MAX, com, command, regex, timeout);
@@ -400,7 +400,7 @@ module.exports = SLR429;
 function CarrierSenseError(message) {
     this.message = message;
     var last_part = new Error().stack.match(/[^\s]+$/);
-    this.stack = `${this.name} at ${last_part}`;
+    this.stack = this.name + ' at ' + last_part;
 }
 util.inherits(CarrierSenseError, Error);
 CarrierSenseError.prototype.name = "CarrierSenseError";

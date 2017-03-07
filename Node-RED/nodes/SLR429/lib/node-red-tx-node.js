@@ -80,7 +80,7 @@ module.exports = function(RED) {
         });
     }
 
-    function input(node, msg) {
+    function input(node, bgid, msg) {
         if (!msg.hasOwnProperty("payload")) {
             return;
         }
@@ -106,7 +106,7 @@ module.exports = function(RED) {
         node.port.on("ready", function() {
             node.status({ fill: "green", shape: "dot", text: "node-red:common.status.connected" });
             node.on("input", function(msg) {
-                input(node, msg);
+                input(node, bgid, msg);
             });
         });
 
