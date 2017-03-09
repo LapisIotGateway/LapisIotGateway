@@ -6,9 +6,9 @@ SCRIPTDIR=$PI/gateway
 NODEREDDIR=$PI/.node-red
 
 # update vnc
-sudo cp $REPOSITORY/Gateway/memo/lpwa_gw_start $PI
-sudo cp $REPOSITORY/Gateway/memo/lpwagw.desktop $PI/.config/autostart
-sudo cp $REPOSITORY/Gateway/memo/x11vnc.desktop $PI/.config/autostart
+cp $REPOSITORY/Gateway/memo/lpwa_gw_start $PI
+cp $REPOSITORY/Gateway/memo/lpwagw.desktop $PI/.config/autostart
+cp $REPOSITORY/Gateway/memo/x11vnc.desktop $PI/.config/autostart
 
 # update script
 sudo rm -rf $SCRIPTDIR
@@ -19,7 +19,7 @@ sudo cp $REPOSITORY/Gateway/wifi_toggle.sh $SCRIPTDIR
 sudo cp $REPOSITORY/Gateway/rm92a_reset.sh $SCRIPTDIR
 
 # update Node-RED
-sudo cp -r $REPOSITORY/Node-RED/nodes/* $NODEREDDIR/node_modules
+cp -r $REPOSITORY/Node-RED/nodes/* $NODEREDDIR/node_modules
 
 # update conf
 sudo cp $REPOSITORY/Gateway/memo/99-local.rules /etc/udev/rules.d
