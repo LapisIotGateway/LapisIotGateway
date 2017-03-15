@@ -1,1 +1,2 @@
-NODE_DEBUG=rm92A,slr429 node-red
+# NODE_DEBUG=rm92A,slr429 node-red
+node-red-start
