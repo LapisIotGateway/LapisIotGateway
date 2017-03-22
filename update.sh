@@ -61,7 +61,7 @@ askYesOrNo "Restart now?"
 if [ $? -eq 0 ]; then
 	echo " restart now program 3sec later"
 	sleep 3
-	echo " now restarting"
+	sudo reboot
 else
 	echo "not restart now"
 	echo "please restart later"
