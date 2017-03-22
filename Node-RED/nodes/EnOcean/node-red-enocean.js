@@ -47,6 +47,7 @@ module.exports = function(RED) {
                     id: erp2.originatorID,
                     eep: profile.eep,
                     payload: eep,
+                    rssi: packet.rssi,
                 };
 
                 node.send(msg);

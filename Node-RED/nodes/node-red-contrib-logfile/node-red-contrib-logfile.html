@@ -1,0 +1,36 @@
+<!-- log file -->
+<script type="text/x-red" data-template-name="log file">
+<div class="form-row">
+		<label for="node-input-name"><i class="icon-tag"></i> Name</label>
+		<input type="text" id="node-input-name" placeholder="Name">
+	</div>
+	<div class="form-row">
+		<label for="node-input-filePath"><i class="icon-tag"></i> file path</label>
+		<input type="text" id="node-input-filePath" placeholder="filePath">
+	</div>
+</script>
+
+<script type="text/x-red" data-help-name="log file">
+<p>A simple node that converts the message payloads into all lower-case characters</p>
+</script>
+
+<script type="text/javascript">
+RED.nodes.registerType("log file",{
+	category: 'function',
+	color: '#a6bbcf',
+	defaults: {
+		name: {value:""},
+		filePath: {
+			value:"",
+			required: true
+		}
+	},
+	inputs:1,
+	outputs:1,
+	icon: "file.png",
+	label: function() {
+		return this.name||"log file";
+	}
+});
+</script>
+
