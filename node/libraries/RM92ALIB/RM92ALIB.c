@@ -20,8 +20,16 @@
  */
 
 #include "lazurite.h"
-#include "rm92alib_new.h"
+#include "rm92alib.h"
 #include "stdlib.h"
+
+#define LIB_DEBUG
+#define BREAK_MODE
+
+#include "libdebug.h"
+
+
+#define DEBUG_LORA
 
 static unsigned char lora_rx_buf[256];
 static int lora_rx_write_p;
@@ -79,13 +87,13 @@ static HardwareSerial* rm92a_port;
 
 #define CCA_MSG2				"Carrier Sense Retry Counter [0:Not Retry  1-9:Retry Count]"
 #define CCA_DELIMITER2			"=\r\n"
-#define RF_MSG1				"RF Settings[1:TX-Power Set  2:Bandwidth Set  3:Factor(SF) Set]"
-#define RF_MSG2				"RF Settings[1:TX-Power Set  2:RF Transmit BitRate Set]"
+#define RF_MSG				"RF Settings[1:TX-Power Set  2:Transmit Time-Total Set  3:Transmit Down-Time Set"
 #define RF_TXPWR_MSG		"TX-Power Set[0:20mW[+13dBm] 1:4mW[+6dBm] 2:1mW[+0dBm]"
+#define RF_TTS_MSG			"Transmission Time-Total Set[0:Not Use  1:Use]"
+#define RF_DTS_MSG			"Transmission Time-Total Set[0:Not Use  1:2msec  2:50msec  3:TransmitTime*10]"
 #define RF_BW_MSG			"Bandwidth Set[0:125kHz  1:250kHz  2:500kHz]"
-#define RF_BW_MSG2			"RF Transmit BitRate Set(bps) [5000 to 300000]"
 #define RF_SF_MSG			"Factor(SF) Set[0:SF6 1:SF7 2:SF8 3:SF9 4:SF10 5:SF11 6:SF12]"
-#define RF_DELIMITER		"=\r\n"
+#define RF_DELIMITER			"=\r\n"
 
 
 #define TX_MSG			"[OK]"
@@ -112,16 +120,12 @@ struct s_rm92a_settings rm92a_settings = {
 		1,	//		bool enable;			// Carrier Sense Enable[0:Not Use  1:Use]
 		5	//		unsigned char retry;	// Carrier Sense Retry Counter [0:Not Retry  1-9:Retry Count]
 	},		//	} cca;
-	{		//	struct {		for RF setting
-		{	//	struct 			for LoRa		// RF Settings[1:TX-Power Set  2:Bandwidth Set  3:Factor(SF) Set]
-			0,		//		unsigned char txpwr;	// 1: TX-Power Set[0:20mW[+13dBm] 1:4mW[+6dBm] 2:1mW[+0dBm]
-			0,		//		unsigned char bw;		// 2: Bandwidth Set[0:125kHz  1:250kHz  2:500kHz]
-			4		//		unsigned char sf;		// 3: Factor(SF) Set[0:SF6 1:SF7 2:SF8 3:SF9 4:SF10 5:SF11 6:SF12]
-		},
-		{	//	struct	for FSK			RF Settings[1:TX-Power Set  2:RF Transmit BitRate Set]=
-			0,		//		unsigned char tx_pwr;	// 1: TX-Power Set[0:20mW[+13dBm] 1:4mW[+6dBm] 2:1mW[+0dBm]
-			50000	//		unsigned long bw;		// 2: RF Transmit BitRate Set(bps) [5000 to 300000]
-		}
+	{		//	struct {					// RF Settings[1:TX-Power Set  2:Transmit Time-Total Set  3:Transmit Down-Time Set
+		0,	//		unsigned char tx_pwr;	// 1: TX-Power Set[0:20mW[+13dBm] 1:4mW[+6dBm] 2:1mW[+0dBm]
+		1,	//		unsigned char tts;		// 2: Transmission Time-Total Set[0:Not Use  1:Use]
+		0,	//		unsigned char dts;		// 3: Transmission Time-Total Set[0:Not Use  1:2msec  2:50msec  3:TransmitTime*10]
+		0,	//		unsigned char bw;		// 4: Bandwidth Set[0:125kHz  1:250kHz  2:500kHz]
+		4	//		unsigned char sf;		// 5: Factor(SF) Set[0:SF6 1:SF7 2:SF8 3:SF9 4:SF10 5:SF11 6:SF12]
 	},		//	} rf;
 	1		//	unsigned char rf_mode;				// 1: Lora     2: FSK
 };
@@ -219,7 +223,7 @@ error:
 
 static int rm92a_set_rfmode(unsigned char mode) {
 	int result=0;
-	if((mode == LORA920) || (mode == FSK920)) {
+	if((mode == LORA_MODE) || (mode == FSK_MODE)) {
 		rm92a_port->println_long((long)mode,DEC);
 	} else {
 		result = -2;
@@ -451,21 +455,21 @@ static int rm92a_set_output() {
 	}
 	rm92a_port->print("l");			// SRC address output
 	if((result = wait_msg_timeout(OUTPUT_MSG,OUTPUT_DELIMITER , 500L)) != 0) {
-		result = -20;
+		result = -17;
 		goto error;
 	}
 	rm92a_port->print("2");
 	delay(5);
 	rm92a_port->print("\n");
 	if((result = wait_msg_timeout(SRC_OUTPUT_MSG, SRC_OUTPUT_DELIMITER, 500L)) != 0) {
-		result = -21;
+		result = -18;
 		goto error;
 	}
 	rm92a_port->print_long(rm92a_settings.output.src,DEC);
 	delay(5);
 	rm92a_port->print("\n");
 	if((result = wait_msg_timeout(SUCCEEDED_MSG, SUCCEEDED_DELIMITER, 500L)) != 0) {
-		result = -22;
+		result = -19;
 		goto error;
 	}
 	
@@ -478,7 +482,7 @@ static int rm92a_set_cca() {
 	
 	rm92a_port->print("m");			// CCA setting
 	if((result = wait_msg_timeout(CCA_MSG1,CCA_DELIMITER1 , 500L)) != 0) {
-		result = -23;
+		result = -19;
 		goto error;
 	}
 	if(rm92a_settings.cca.enable) {
@@ -486,7 +490,7 @@ static int rm92a_set_cca() {
 		delay(5);
 		rm92a_port->print("\n");
 		if((result = wait_msg_timeout(CCA_MSG2, CCA_DELIMITER2, 500L)) != 0) {
-			result = -24;
+			result = -20;
 			goto error;
 		}
 		rm92a_port->print_long(rm92a_settings.cca.retry,DEC);
@@ -498,160 +502,127 @@ static int rm92a_set_cca() {
 		rm92a_port->print("\n");
 	}
 	if((result = wait_msg_timeout(SUCCEEDED_MSG, SUCCEEDED_DELIMITER, 500L)) != 0) {
-		result = -25;
+		result = -21;
 		goto error;
 	}
 	
 error:
 	return result;
 }
-
-static int rm92a_set_rf_lora() {
-	int result;
+static int rm92a_set_rf() {
+	int result = 0;
 	
 	// TX PWR
 	rm92a_port->print("g");
-	if((result = wait_msg_timeout(RF_MSG1,RF_DELIMITER , 500L)) != 0) {
-		result = -26;
+	if((result = wait_msg_timeout(RF_MSG,RF_DELIMITER , 500L)) != 0) {
+		result = -22;
 		goto error;
 	}
 	rm92a_port->print("1");
 	delay(5);
 	rm92a_port->print("\n");
 	if((result = wait_msg_timeout(RF_TXPWR_MSG, RF_DELIMITER, 500L)) != 0) {
-		result = -27;
+		result = -23;
 		goto error;
 	}
-	rm92a_port->print_long(rm92a_settings.rf.lora.txpwr,DEC);
+	rm92a_port->print_long(rm92a_settings.rf.txpwr,DEC);
 	delay(5);
 	rm92a_port->print("\n");
 	
 	if((result = wait_msg_timeout(SUCCEEDED_MSG, SUCCEEDED_DELIMITER, 500L)) != 0) {
-		result = -28;
+		result = -24;
 		goto error;
 	}
-	// BW
+	
+	// Transmission Time-Total
 	rm92a_port->print("g");
-	if((result = wait_msg_timeout(RF_MSG1,RF_DELIMITER , 500L)) != 0) {
-		result = -29;
+	if((result = wait_msg_timeout(RF_MSG,RF_DELIMITER , 500L)) != 0) {
+		result = -25;
 		goto error;
 	}
 	rm92a_port->print("2");
 	delay(5);
 	rm92a_port->print("\n");
-	if((result = wait_msg_timeout(RF_BW_MSG, RF_DELIMITER, 500L)) != 0) {
-		result = -30;
+	if((result = wait_msg_timeout(RF_TTS_MSG, RF_DELIMITER, 500L)) != 0) {
+		result = -26;
 		goto error;
 	}
-	rm92a_port->print_long(rm92a_settings.rf.lora.bw,DEC);
+	rm92a_port->print_long(rm92a_settings.rf.tts,DEC);
 	delay(5);
 	rm92a_port->print("\n");
 	if((result = wait_msg_timeout(SUCCEEDED_MSG, SUCCEEDED_DELIMITER, 500L)) != 0) {
-		result = -31;
+		result = -27;
 		goto error;
 	}
 	
-	// SF
+	// Transmit Down-Time Set
 	rm92a_port->print("g");
-	if((result = wait_msg_timeout(RF_MSG1,RF_DELIMITER , 500L)) != 0) {
-		result = -32;
+	if((result = wait_msg_timeout(RF_MSG,RF_DELIMITER , 500L)) != 0) {
+		result = -28;
 		goto error;
 	}
 	rm92a_port->print("3");
 	delay(5);
 	rm92a_port->print("\n");
-	if((result = wait_msg_timeout(RF_SF_MSG, RF_DELIMITER, 500L)) != 0) {
+	if((result = wait_msg_timeout(RF_DTS_MSG, RF_DELIMITER, 500L)) != 0) {
+		result = -29;
+		goto error;
+	}
+	rm92a_port->print_long(rm92a_settings.rf.dts,DEC);
+	delay(5);
+	rm92a_port->print("\n");
+	if((result = wait_msg_timeout(SUCCEEDED_MSG, SUCCEEDED_DELIMITER, 500L)) != 0) {
+		result = -30;
+		goto error;
+	}
+	
+	// BW
+	rm92a_port->print("g");
+	if((result = wait_msg_timeout(RF_MSG,RF_DELIMITER , 500L)) != 0) {
+		result = -31;
+		goto error;
+	}
+	rm92a_port->print("4");
+	delay(5);
+	rm92a_port->print("\n");
+	if((result = wait_msg_timeout(RF_BW_MSG, RF_DELIMITER, 500L)) != 0) {
+		result = -32;
+		goto error;
+	}
+	rm92a_port->print_long(rm92a_settings.rf.bw,DEC);
+	delay(5);
+	rm92a_port->print("\n");
+	if((result = wait_msg_timeout(SUCCEEDED_MSG, SUCCEEDED_DELIMITER, 500L)) != 0) {
 		result = -33;
 		goto error;
 	}
-	rm92a_port->print_long(rm92a_settings.rf.lora.sf,DEC);
-	delay(5);
-	rm92a_port->print("\n");
-	if((result = wait_msg_timeout(SUCCEEDED_MSG, SUCCEEDED_DELIMITER, 500L)) != 0) {
+	
+	// SF
+	rm92a_port->print("g");
+	if((result = wait_msg_timeout(RF_MSG,RF_DELIMITER , 500L)) != 0) {
 		result = -34;
 		goto error;
 	}
-error:
-	return result;
-}
-
-static int rm92a_set_rf_fsk() {
-	int result;
-	int i;
-	long j,k;
-	bool out_flag = false;
-	const long digit[] = {100000,10000,1000,100,10,1};
-	
-	// TX PWR
-	rm92a_port->print("g");
-	if((result = wait_msg_timeout(RF_MSG2,RF_DELIMITER , 500L)) != 0) {
+	rm92a_port->print("5");
+	delay(5);
+	rm92a_port->print("\n");
+	if((result = wait_msg_timeout(RF_SF_MSG, RF_DELIMITER, 500L)) != 0) {
 		result = -35;
 		goto error;
 	}
-	rm92a_port->print("1");
+	rm92a_port->print_long(rm92a_settings.rf.sf,DEC);
 	delay(5);
 	rm92a_port->print("\n");
-	if((result = wait_msg_timeout(RF_TXPWR_MSG, RF_DELIMITER, 500L)) != 0) {
+	if((result = wait_msg_timeout(SUCCEEDED_MSG, SUCCEEDED_DELIMITER, 500L)) != 0) {
 		result = -36;
 		goto error;
 	}
-	rm92a_port->print_long(rm92a_settings.rf.fsk.txpwr,DEC);
-	delay(5);
-	rm92a_port->print("\n");
-	
-	if((result = wait_msg_timeout(SUCCEEDED_MSG, SUCCEEDED_DELIMITER, 500L)) != 0) {
-		result = -37;
-		goto error;
-	}
-	// BW
-	rm92a_port->print("g");
-	if((result = wait_msg_timeout(RF_MSG2,RF_DELIMITER , 500L)) != 0) {
-		result = -38;
-		goto error;
-	}
-	rm92a_port->print("2");
-	delay(5);
-	rm92a_port->print("\n");
-	if((result = wait_msg_timeout(RF_BW_MSG2, RF_DELIMITER, 500L)) != 0) {
-		result = -39;
-		goto error;
-	}
-	j = rm92a_settings.rf.fsk.bw;
-	for(i=0;i<6;i++) {
-		k = j/digit[i];
-		if((out_flag != false) || (k != 0)) 
-		{
-			out_flag = true;
-			rm92a_port->write_byte('0'+k);
-			delay(1);
-			j = j - (k*digit[i]);
-		}
-	}
-	delay(1);
-	rm92a_port->print("\n");
-	if((result = wait_msg_timeout(SUCCEEDED_MSG, SUCCEEDED_DELIMITER, 500L)) != 0) {
-		result = -40;
-		goto error;
-	}
 	
 error:
 	return result;
 }
 
-static int rm92a_set_rf() {
-	int result = 0;
-	
-	if(rm92a_settings.rf_mode == 1) {
-		result = rm92a_set_rf_lora();
-	} else {
-		result = rm92a_set_rf_fsk();
-	}
-	
-error:
-	return result;
-}
-
-static int rm92a_begin(unsigned char mode, unsigned char ch, unsigned short panid, unsigned short src)
+static int rm92a_begin(unsigned char mode, unsigned char ch, unsigned short panid, unsigned short src,unsigned short dst,bool load)
 {
 	int result=0;
 	
@@ -670,13 +641,11 @@ static int rm92a_begin(unsigned char mode, unsigned char ch, unsigned short pani
 
 	
 	// load
-	/*
 	if(load) {
 		rm92a_port->print("y");
 		wait_msg_timeout(NULL, SETTING_DELIMITER, 500L);
 		return 0;
 	}
-	*/
 	
 	// set channel
 	if((result = rm92a_set_ch(ch)) != 0) goto error;
@@ -688,7 +657,7 @@ static int rm92a_begin(unsigned char mode, unsigned char ch, unsigned short pani
 	if((result = rm92a_set_src(src)) != 0) goto error;
 
 	// set dst
-	if((result = rm92a_set_dst(1)) != 0) goto error;
+	if((result = rm92a_set_dst(dst)) != 0) goto error;
 	
 	// unit mode
 	if((result = rm92a_set_unit_mode()) != 0) goto error;
@@ -715,7 +684,7 @@ static int rm92a_begin(unsigned char mode, unsigned char ch, unsigned short pani
 	// start!!
 	rm92a_port->print("s");
 	if((result = wait_msg_timeout(START_MSG,START_DELIMITER , 500L)) != 0) {
-		result = -42;
+		result = -17;
 		goto error;
 	}
 
@@ -821,18 +790,13 @@ static int rm92a_send(unsigned short dst,unsigned char *payload,int size)
 	txbuf[4] = (unsigned char)((dst >> 0) & 0xFF);
 	strcpy(&txbuf[5],payload,size);
 	txbuf[size+5] = 0xAA;
-	txbuf[size+6] = NULL;
 	result = size + 6;
 	if(rm92a_settings.debug) {
-		Serial.write_byte(txbuf[0]);
-		Serial.write_byte(txbuf[1]);
-		Serial.print(",");
-		Serial.print_long(txbuf[2],DEC);
-		Serial.print(",");
-		Serial.print_long(txbuf[3],DEC);
-		Serial.print_long(txbuf[4],DEC);
-		Serial.print(",");
-		Serial.println(&txbuf[5]);
+		for(i=0;i<result;i++) {
+			Serial.print_long(txbuf[i],HEX);
+			Serial.print(",");
+		}
+		Serial.println("");
 	}
 	
 	rm92a_port->write(txbuf,result);

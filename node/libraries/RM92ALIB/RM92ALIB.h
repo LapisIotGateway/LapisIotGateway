@@ -25,8 +25,10 @@
 
 #include "lazurite.h"
 
-#define LORA920	1
-#define FSK920	2
+enum RM92A_MODE {
+	LORA_MODE=1,
+	FSK_MODE=2
+};
 
 typedef struct {
 		char boot0;
@@ -52,22 +54,18 @@ struct s_rm92a_settings  {
 		unsigned char retry;
 	} cca;
 	struct {
-		struct {
-			unsigned char txpwr;	// 1:TX-Power Set[0:20mW[+13dBm] 1:4mW[+6dBm] 2:1mW[+0dBm]
-			unsigned char bw;		// 2: Bandwidth Set[0:125kHz  1:250kHz  2:500kHz]
-			unsigned char sf;		// 3: Factor(SF) Set[0:SF6 1:SF7 2:SF8 3:SF9 4:SF10 5:SF11 6:SF12]
-		} lora;
-		struct {
-			unsigned char txpwr;	// TX-Power Set[0:20mW[+13dBm] 1:4mW[+6dBm] 2:1mW[+0dBm]
-			unsigned long bw;		// RF Transmit BitRate Set(bps) [5000 to 300000]
-		} fsk;
+		unsigned char txpwr;	// 1:TX-Power Set
+		unsigned char tts;		// 2:Transmit Time-Total Set
+		unsigned char dts;		// 3:Transmit Down-Time Set
+		unsigned char bw;		// 4:Bandwidth Set
+		unsigned char sf;		// 5:Factor(SF) Set
 	} rf;
 	unsigned char rf_mode;				// 1: Lora     2: FSK
 };
 
 typedef struct {
 	int (*init)(HardwareSerial* port,t_RM92A_CONFIG *config);
-	int (*begin)(unsigned char mode, unsigned char ch, unsigned short panid, unsigned short src);
+	int (*begin)(unsigned char mode, unsigned char ch, unsigned short panid, unsigned short src,unsigned short dst,bool load);
 	int (*send)(unsigned short dst,unsigned char *payload,int size);
 	short (*readData)(uint16_t *dst,int16_t *rssi,uint8_t *data, short maxsize);
 	void (*setMode)(struct s_rm92a_settings *settings);
