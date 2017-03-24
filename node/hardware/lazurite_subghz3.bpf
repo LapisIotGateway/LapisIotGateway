@@ -1,0 +1,17 @@
+# MCU BOARD PROJECT FILE
+# FILE NAME:  lazurite.pref
+
+MCUBOARD_NAME=LAZURITE Sub-GHz Rev3
+
+MANUFACTURER_NAME=LAPIS
+DESCRIPTION_NAME=LAZURITE Sub-GHz Rev3
+CTRL_DRIVER=bin\\lazurite_ft232_ctrl.exe
+
+OPTION_NAME=LAZURITE Basic
+OPTION_BUILD=hardware\\lazurite_subghz3\\build\\lazurite3_basic.bld
+OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
+
+OPTION_NAME=LAZURITE Sub-GHz
+OPTION_BUILD=hardware\\lazurite_subghz3\\build\\lazurite3_SubGHz.bld
+OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
+

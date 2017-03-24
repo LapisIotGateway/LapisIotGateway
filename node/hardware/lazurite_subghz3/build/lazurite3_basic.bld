@@ -1,0 +1,111 @@
+# Build option file
+# INCPATH: file path of include file
+# PRJSRC:  Source file
+# CMPOPT:  Compile option
+# ASMOPT:  ASM option
+# PRNDIR:  PRN file output directories
+# LNKOPT:  Link options
+# PRJLIB:  Project libraries
+
+###### Include Path
+INCPATH=hardware\\lazurite_subghz
+INCPATH=hardware\\lazurite_subghz\\lazurite
+INCPATH=hardware\\lazurite_subghz\\lazurite
+INCPATH=hardware\\lazurite_subghz\\ml620q504
+INCPATH=hardware\\lazurite_subghz\\ml620q504\\clock
+INCPATH=hardware\\lazurite_subghz\\ml620q504\\common
+INCPATH=hardware\\lazurite_subghz\\ml620q504\\irq
+INCPATH=hardware\\lazurite_subghz\\ml620q504\\lp
+INCPATH=hardware\\lazurite_subghz\\ml620q504\\mcu_small
+INCPATH=hardware\\lazurite_subghz\\ml620q504\\wdt
+INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\
+INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\api
+INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\core
+INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif
+INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\others
+
+###### Compiling source files
+PRJSRC=bin\\U8Dev\\Startup\\Src\\\ml620504f.asm
+PRJSRC=hardware\\lazurite_subghz\\main.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\lazurite_system.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\flash.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\analogio.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\print.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\digitalio.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\serial.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\tone.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\WInterrupts.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\wiring_shift.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\WMath.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_adc.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_extirq.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_gpio.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_i2c.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_irq.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_timer.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_ftm_timer.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_tmout.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_uart.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_flash.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\lp\\lp_manage.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\wdt\\wdt.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\subghz_api.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\api\\bp3596.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\api\\aes.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\core\\ml7396.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\hal_lazurite.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\ml7396_hwif_hal.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\spi0.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\wire0.c
+
+###### Compiling option
+CMPOPT=/TML620504F
+CMPOPT=/MS
+CMPOPT=/near
+CMPOPT=/SD
+CMPOPT=/SL65
+CMPOPT=/Ot
+CMPOPT=/Oa
+CMPOPT=/SS512
+CMPOPT=/W3
+CMPOPT=/Lv
+CMPOPT=/D_ML620Q504
+CMPOPT=/DSUBGHZ
+#CMPOPT=/DLAZURITE_MINI
+CMPOPT=/DLAZURITE_IDE
+#POWER LED Control for Lazurite Mini
+CMPOPT=/DPWR_LED
+#LDO power mode control for Lazurite Mini
+CMPOPT=/DLDO_CNT
+
+OBJDIR=obj\\
+
+ASMOPT=/MS
+ASMOPT=/DN
+ASMOPT=/CD
+ASMOPT=/SD
+ASMOPT=/SL66
+ASMOPT=/WRPEAST
+ASMOPT=/L
+ASMOPT=/S
+ASMOPT=/R
+ASMOPT=/SF
+ASMOPT=/PL60
+ASMOPT=/PW79
+ASMOPT=/T8
+ASMOPT=/NE
+
+PRNDIR=_prn\\
+
+LNKOPT=/STACK(512)
+LNKOPT=/D
+LNKOPT=/SD
+LNKOPT=/S
+LNKOPT=/CC
+
+PRJLIB=bin\\u8dev\\Lib\\LU8100SW.lib
+PRJLIB=bin\\u8dev\\Lib\\LONGU8.lib
+PRJLIB=bin\\u8dev\\Lib\\DOUBLEU8.LIB
+PRJLIB=bin\\u8dev\\Lib\\FLOATU8.LIB
+PRJLIB=bin\\u8dev\\Lib\\LU8100LW.lib
+PRJLIB=bin\\u8dev\\Lib\\muldivu8.lib

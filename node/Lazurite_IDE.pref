@@ -1,0 +1,62 @@
+# LAZURITE IDE SETTING FILE
+
+#Latest COM port and baud rate
+RECENT_COM_NUM=COM130
+RECENT_COM_BAUDRATE=9600
+
+#Latest MCU Board and option setting
+RECENT_MCUBOARD=LAZURITE Sub-GHz Rev2
+RECENT_OPTION=LAZURITE Basic
+
+# default setting
+LANGUAGE=languages/japanese.pref
+
+DEFAULT_USED_MCUBOARD=LAZURITE Sub-GHz Rev2
+DEFAULT_USED_OPTION=LAZURITE Sub-GHz
+
+# MCU BOARD Preference Files
+MCUBOARD_PREF_FILES=lazurite_subghz2.bpf
+MCUBOARD_PREF_FILES=lazurite_subghz3.bpf
+MCUBOARD_PREF_FILES=lazurite_mini.bpf
+
+# Selectable Baud rate
+BAUDRATES=300
+BAUDRATES=1200
+BAUDRATES=2400
+BAUDRATES=4800
+BAUDRATES=9600
+BAUDRATES=19200
+BAUDRATES=28800
+BAUDRATES=38400
+BAUDRATES=57600
+BAUDRATES=115200
+
+# Environment value
+AUTO_CLEAN=true
+DISP_LINE_NUM=true
+FONTSIZES=8
+FONTSIZES=9
+FONTSIZES=10
+FONTSIZES=11
+FONTSIZES=12
+FONTSIZES=14
+FONTSIZES=16
+FONTSIZES=18
+FONTSIZES=20
+FONTSIZES=22
+FONTSIZES=24
+FONTSIZES=26
+FONTSIZES=28
+FONTSIZES=36
+FONTSIZES=48
+FONTSIZES=72
+FONT_SIZE=18
+
+# Recent Files
+RECENT_FILES_TOP = ### This key will have been used to shape the description location in the file,but are not referenced in the application. ###
+RECENT_FILES = C:\\Users\\a141088\\Desktop\\LazuriteIDE\\examples\\00.lpwagw\\SLR429_2\\SLR429_2.c
+RECENT_FILES = C:\\Users\\a141088\\Desktop\\SLR-429\\LazuriteTest\\RM92A_3\\RM92A_3.c
+RECENT_FILES = C:\\Users\\a141088\\Desktop\\SLR-429\\LazuriteTest\\SLR429_3\\SLR429_3.c
+RECENT_FILES = C:\\Users\\a141088\\Desktop\\LazuriteIDE\\examples\\03.SubGHz\\Print_SubGHz\\Print_SubGHz.c
+RECENT_FILES = C:\\Users\\a141088\\Desktop\\SLR-429\\LazuriteTest\\RM92A_2\\RM92A_2.c
+LATEST_FOLDER = C:\\Users\\a141088\\Desktop\\LazuriteIDE\\examples\\00.lpwagw\\SLR429_2

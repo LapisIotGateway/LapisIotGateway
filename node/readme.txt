@@ -1,0 +1,1 @@
+本ディレクトリのファイルをLazuriteIDEのフォルダに上書きしてからLazuriteIDEを起動してください。
